@@ -1,0 +1,19 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.*
+!.env.example
+
+# SQLite
+*.sqlite
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+data/
+
+# Backups
+backups/
+
+.DS_Store

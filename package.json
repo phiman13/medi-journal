@@ -1,0 +1,29 @@
+{
+  "name": "medi-journal",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "workspaces": [
+    "app",
+    "server"
+  ],
+  "engines": {
+    "node": ">=26"
+  },
+  "scripts": {
+    "dev:app": "npm run dev --workspace app",
+    "dev:server": "npm run dev --workspace server",
+    "build": "npm run build --workspace app && npm run build --workspace server",
+    "test": "npm run test --workspace app && npm run test --workspace server",
+    "lint": "eslint .",
+    "format": "prettier --write ."
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.19.0",
+    "eslint": "^9.19.0",
+    "eslint-config-prettier": "^9.1.0",
+    "prettier": "^3.4.2",
+    "typescript": "^5.7.3",
+    "typescript-eslint": "^8.21.0"
+  }
+}

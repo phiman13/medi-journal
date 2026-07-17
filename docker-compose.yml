@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      PORT: 3000
+      DB_PATH: /data/medi-journal.sqlite
+      MASTER_PASSWORD_HASH: ${MASTER_PASSWORD_HASH}
+      SESSION_SECRET: ${SESSION_SECRET}
+      NODE_ENV: production
+    volumes:
+      - db-data:/data
+      - ./backups:/backups
+    expose:
+      - "3000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - app
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:
