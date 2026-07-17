@@ -1,0 +1,869 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Elvanse-Tagebuch (Brückenlösung)</title>
+<style>
+  :root {
+    color-scheme: light;
+    --surface-1: #fcfcfb; --page: #f9f9f7;
+    --text-primary: #0b0b0b; --text-secondary: #52514e; --text-muted: #898781;
+    --grid: #e1e0d9; --baseline: #c3c2b7; --border: rgba(11,11,11,0.10);
+    --series-1: #2a78d6; --series-2: #008300; --series-3: #e87ba4;
+    --good: #0ca30c;
+    --warning-bg: #fdf3dc; --warning-ink: #7a5b00;
+    --danger-bg: #fbe4e4; --danger-ink: #8f2222;
+    --info-bg: #e8f0fb; --info-ink: #1c4f8f;
+    --accent: #2a78d6; --accent-ink: #ffffff; --input-bg: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1: #1a1a19; --page: #0d0d0d;
+      --text-primary: #ffffff; --text-secondary: #c3c2b7; --text-muted: #898781;
+      --grid: #2c2c2a; --baseline: #383835; --border: rgba(255,255,255,0.10);
+      --series-1: #3987e5; --series-2: #008300; --series-3: #d55181;
+      --warning-bg: #33290e; --warning-ink: #f0d48a;
+      --danger-bg: #351717; --danger-ink: #f0a2a2;
+      --info-bg: #16273d; --info-ink: #9cc1f0;
+      --accent: #3987e5; --input-bg: #232322;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+         background: var(--page); color: var(--text-primary); font-size: 15px; line-height: 1.45; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 60px; }
+  header h1 { font-size: 22px; margin: 0 0 2px; font-weight: 650; }
+  header .sub { color: var(--text-secondary); font-size: 14px; margin-bottom: 4px; }
+  .storage-line { font-size: 12.5px; color: var(--text-muted); margin-bottom: 16px; }
+  .storage-line .dot { display:inline-block; width:8px; height:8px; border-radius:50%; background: var(--good); margin-right:5px; vertical-align:1px; }
+  .storage-line .dot.bad { background: #d03b3b; }
+  .banner { border-radius: 10px; padding: 10px 14px; font-size: 13.5px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+  .banner.warn { background: var(--warning-bg); color: var(--warning-ink); }
+  .banner.danger { background: var(--danger-bg); color: var(--danger-ink); }
+  .banner.info { background: var(--info-bg); color: var(--info-ink); }
+  .banner button { margin-left: auto; flex-shrink: 0; }
+  .hidden { display: none !important; }
+  .grid { display: grid; grid-template-columns: 440px 1fr; gap: 16px; align-items: start; }
+  @media (max-width: 920px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 15px; margin: 0 0 12px; font-weight: 650; }
+  .card h2 .hint, .hint { font-weight: 400; color: var(--text-muted); font-size: 12.5px; }
+  .section-label { font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-muted); margin: 18px 0 6px; font-weight: 600; }
+  .section-label:first-of-type { margin-top: 0; }
+  label.field { display: block; font-size: 13px; color: var(--text-secondary); margin: 10px 0 4px; font-weight: 550; }
+  .fieldnote { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+  input[type="date"], input[type="time"], input[type="number"], input[type="text"], textarea, select {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+    background: var(--input-bg); color: var(--text-primary); font: inherit; font-size: 14px; }
+  textarea { resize: vertical; min-height: 52px; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .row4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 10px; }
+  .slider-block { margin: 10px 0 2px; }
+  .slider-head { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; }
+  .slider-head .name { color: var(--text-secondary); font-weight: 550; }
+  .slider-head .val { font-weight: 650; font-size: 15px; min-width: 22px; text-align: right; }
+  .slider-head .skey { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:-1px; }
+  .slider-scale { display: flex; justify-content: space-between; font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+  input[type="range"] { width: 100%; accent-color: var(--accent); margin: 4px 0 0; }
+  .checks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .chip { position: relative; }
+  .chip input { position: absolute; opacity: 0; inset: 0; cursor: pointer; }
+  .chip span { display: inline-block; padding: 5px 11px; border-radius: 999px; font-size: 12.5px;
+    border: 1px solid var(--border); color: var(--text-secondary); user-select: none; }
+  .chip input:checked + span { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .chip input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .btn { font: inherit; font-size: 13.5px; padding: 8px 14px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--border); background: var(--input-bg); color: var(--text-primary); }
+  .btn:hover { border-color: var(--baseline); }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn.small { padding: 4px 10px; font-size: 12.5px; }
+  .btn.danger-ghost { color: #d03b3b; }
+  .form-actions { display: flex; gap: 8px; margin-top: 16px; align-items: center; }
+  .save-note { font-size: 12.5px; color: var(--good); opacity: 0; transition: opacity .3s; }
+  .save-note.show { opacity: 1; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 16px; }
+  .tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 12px 14px; }
+  .tile .tlabel { font-size: 12px; color: var(--text-muted); }
+  .tile .tvalue { font-size: 24px; font-weight: 650; margin-top: 2px; }
+  .tile .tsub { font-size: 11.5px; color: var(--text-secondary); }
+  .legend { display: flex; gap: 16px; font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; flex-wrap: wrap; }
+  .legend .key { display: inline-block; width: 14px; height: 3px; border-radius: 2px; margin-right: 5px; vertical-align: 3px; }
+  #chartbox { position: relative; }
+  #chart { display: block; width: 100%; }
+  #chart-empty { color: var(--text-muted); font-size: 13.5px; padding: 30px 0 20px; text-align: center; }
+  #tooltip { position: absolute; pointer-events: none; background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 10px; padding: 8px 11px; font-size: 12.5px; box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+    display: none; z-index: 5; min-width: 160px; }
+  #tooltip .tt-date { font-weight: 650; margin-bottom: 4px; }
+  #tooltip .tt-row { display: flex; justify-content: space-between; gap: 14px; color: var(--text-secondary); }
+  #tooltip .tt-row b { color: var(--text-primary); font-weight: 600; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; color: var(--text-muted); font-weight: 550; font-size: 12px; padding: 6px 8px; border-bottom: 1px solid var(--grid); }
+  td { padding: 7px 8px; border-bottom: 1px solid var(--grid); vertical-align: top; font-variant-numeric: tabular-nums; }
+  tr:last-child td { border-bottom: none; }
+  td.flags { color: var(--text-secondary); font-size: 12px; max-width: 220px; }
+  .table-scroll { overflow-x: auto; }
+  .qrow { display: grid; grid-template-columns: 1fr 150px; gap: 10px; align-items: center; margin-bottom: 8px; }
+  .qrow .qtext { font-size: 13px; color: var(--text-secondary); }
+  .score-line { font-size: 13.5px; margin-top: 8px; }
+  .score-line b { font-size: 16px; }
+  details.mod { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; margin-top: 12px; }
+  details.mod summary { cursor: pointer; font-weight: 600; font-size: 13.5px; }
+  details.mod .inner { margin-top: 10px; }
+  details.help { margin-top: 14px; font-size: 13px; color: var(--text-secondary); }
+  details.help summary { cursor: pointer; font-weight: 550; color: var(--text-primary); font-size: 13.5px; }
+  details.help ul { margin: 8px 0 0; padding-left: 18px; }
+  details.help li { margin-bottom: 4px; }
+  .backup-card .btnrow { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+  .backup-card p { font-size: 13px; color: var(--text-secondary); margin: 6px 0; }
+  footer { margin-top: 24px; font-size: 12px; color: var(--text-muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Elvanse-Tagebuch <span class="hint">Brückenlösung bis zur PWA · Datenformat v2</span></h1>
+    <div class="sub">Täglich 2 Minuten am Abend · sonntags Wochen-Check · alle 14 Tage PHQ-9</div>
+    <div class="storage-line" id="storageLine"><span class="dot"></span>Automatische Speicherung aktiv</div>
+  </header>
+
+  <div class="banner danger hidden" id="storageWarn">
+    <div><b>Achtung:</b> Dieser Browser-Kontext kann keine Daten dauerhaft speichern (z.&nbsp;B. Vorschau- oder Privatmodus).
+    Einträge gehen beim Schließen verloren, wenn du sie nicht per <b>„Sicherung exportieren“</b> als Datei sicherst.</div>
+  </div>
+  <div class="banner warn hidden" id="exportRemind">
+    <div>Dein letzter Datei-Export ist über eine Woche her. Bitte kurz exportieren – die JSON-Datei ist deine Sicherheitskopie und später die Import-Datei für die PWA.</div>
+    <button class="btn small" onclick="exportData()">Jetzt exportieren</button>
+  </div>
+  <div class="banner info hidden" id="weeklyRemind">
+    <div>Der Wochen-Check für diese Woche fehlt noch (ASRS-6, Gewicht, Blutdruck). Dauert ca. 3 Minuten.</div>
+    <button class="btn small" onclick="document.getElementById('weeklyCard').scrollIntoView({behavior:'smooth'})">Zum Wochen-Check</button>
+  </div>
+
+  <div class="grid">
+    <!-- ================= LINKS: TAGES-FORMULAR ================= -->
+    <div>
+    <div class="card">
+      <h2 id="formTitle">Heutiger Eintrag</h2>
+
+      <div class="section-label">Medikation</div>
+      <div class="row2">
+        <div><label class="field" for="f-date">Datum</label><input type="date" id="f-date"></div>
+        <div><label class="field" for="f-taken">Elvanse genommen?</label>
+          <select id="f-taken"><option value="ja">ja</option><option value="nein">nein</option></select></div>
+      </div>
+      <div class="row3">
+        <div><label class="field" for="f-dose">Dosis (mg)</label><input type="number" id="f-dose" min="0" step="5" placeholder="30"></div>
+        <div><label class="field" for="f-time">Einnahme</label><input type="time" id="f-time"></div>
+        <div><label class="field" for="f-wearoff">Wirkende <span class="fieldnote">ca.</span></label><input type="time" id="f-wearoff"></div>
+      </div>
+      <label class="field" for="f-quetiapin">Quetiapin am Abend</label>
+      <select id="f-quetiapin"><option value="ja">ja</option><option value="nein">nein</option></select>
+
+      <div class="section-label">Kernsymptome &amp; Funktion <span class="fieldnote">(1 = sehr schlecht · 10 = sehr gut)</span></div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name"><span class="skey" style="background:var(--series-1)"></span>Fokus / Ablenkbarkeit</span><span class="val" id="v-fokus">5</span></div>
+        <input type="range" id="f-fokus" min="1" max="10" value="5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Ins Tun kommen <span class="fieldnote">(Aufschieben?)</span></span><span class="val" id="v-task">5</span></div>
+        <input type="range" id="f-task" min="1" max="10" value="5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Innere Ruhe <span class="fieldnote">(Gedankenkreisen leise?)</span></span><span class="val" id="v-ruhe">5</span></div>
+        <input type="range" id="f-ruhe" min="1" max="10" value="5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name">Emotionale Ausgeglichenheit <span class="fieldnote">(Reizbarkeit?)</span></span><span class="val" id="v-emo">5</span></div>
+        <input type="range" id="f-emo" min="1" max="10" value="5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name"><span class="skey" style="background:var(--series-2)"></span>Stimmung</span><span class="val" id="v-stimmung">5</span></div>
+        <input type="range" id="f-stimmung" min="1" max="10" value="5">
+      </div>
+      <div class="slider-block">
+        <div class="slider-head"><span class="name"><span class="skey" style="background:var(--series-3)"></span>Tagesfunktion gesamt <span class="fieldnote">(Alltag/Arbeit bewältigt?)</span></span><span class="val" id="v-funktion">5</span></div>
+        <input type="range" id="f-funktion" min="1" max="10" value="5">
+      </div>
+
+      <label class="field" for="f-geschafft">Was habe ich heute geschafft? <span class="fieldnote">(gerade Dinge, die sonst liegen bleiben)</span></label>
+      <textarea id="f-geschafft"></textarea>
+
+      <div class="section-label">Schlaf (letzte Nacht) &amp; Körper</div>
+      <div class="row3">
+        <div><label class="field" for="f-sleephours">Schlaf (Std.)</label><input type="number" id="f-sleephours" min="0" max="16" step="0.5"></div>
+        <div><label class="field" for="f-sleepq">Qualität (1–10)</label>
+          <select id="f-sleepq"><option value="">–</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option></select></div>
+        <div><label class="field" for="f-appetit">Appetit</label>
+          <select id="f-appetit"><option value="normal">normal</option><option value="reduziert">reduziert</option><option value="stark reduziert">stark reduziert</option></select></div>
+      </div>
+      <div class="checks" id="f-se2" style="margin-top:8px;">
+        <label class="chip"><input type="checkbox" value="Einschlafprobleme"><span>Einschlafprobleme (letzte Nacht)</span></label>
+      </div>
+      <div class="row3" style="margin-top:8px;">
+        <div><label class="field" for="f-puls">Ruhepuls</label><input type="number" id="f-puls" min="30" max="220" placeholder="bpm"></div>
+        <div><label class="field" for="f-bpsys">RR sys <span class="fieldnote">(opt.)</span></label><input type="number" id="f-bpsys" min="70" max="250"></div>
+        <div><label class="field" for="f-bpdia">RR dia <span class="fieldnote">(opt.)</span></label><input type="number" id="f-bpdia" min="40" max="150"></div>
+      </div>
+
+      <div class="section-label">Kontext</div>
+      <div class="row2">
+        <div><label class="field" for="f-koffein">Koffein <span class="fieldnote">(Portionen)</span></label><input type="number" id="f-koffein" min="0" max="20"></div>
+        <div><label class="field" for="f-alkohol">Alkohol</label>
+          <select id="f-alkohol"><option value="nein">nein</option><option value="ja">ja</option></select></div>
+      </div>
+
+      <div class="section-label">Heute bemerkt</div>
+      <div class="checks" id="f-flags">
+        <label class="chip"><input type="checkbox" value="Rausch-/High-Gefühl"><span>Rausch-/High-Gefühl</span></label>
+        <label class="chip"><input type="checkbox" value="Rebound/Crash"><span>Rebound/Crash nachm.</span></label>
+      </div>
+      <div class="checks" id="f-se" style="margin-top:6px;">
+        <label class="chip"><input type="checkbox" value="Appetitverlust"><span>Appetitverlust</span></label>
+        <label class="chip"><input type="checkbox" value="Kopfschmerzen"><span>Kopfschmerzen</span></label>
+        <label class="chip"><input type="checkbox" value="Magen/Darm"><span>Magen/Darm</span></label>
+        <label class="chip"><input type="checkbox" value="Mundtrockenheit"><span>Mundtrockenheit</span></label>
+        <label class="chip"><input type="checkbox" value="Schwitzen"><span>Schwitzen</span></label>
+        <label class="chip"><input type="checkbox" value="Herzklopfen"><span>Herzklopfen</span></label>
+        <label class="chip"><input type="checkbox" value="Schwindel"><span>Schwindel</span></label>
+        <label class="chip"><input type="checkbox" value="Angst/Anspannung"><span>Angst/Anspannung</span></label>
+        <label class="chip"><input type="checkbox" value="Reizbarkeit"><span>Reizbarkeit</span></label>
+        <label class="chip"><input type="checkbox" value="Tics/Zucken"><span>Tics/Zucken</span></label>
+        <label class="chip"><input type="checkbox" value="Libido/Sexuelles"><span>Libido/Sexuelles</span></label>
+        <label class="chip"><input type="checkbox" value="Hodenschmerzen"><span>Hodenschmerzen</span></label>
+      </div>
+
+      <label class="field" for="f-notizen">Notizen</label>
+      <textarea id="f-notizen"></textarea>
+
+      <div class="form-actions">
+        <button class="btn primary" onclick="saveEntry()">Eintrag speichern</button>
+        <button class="btn hidden" id="btnNew" onclick="resetForm()">Neuer Eintrag</button>
+        <span class="save-note" id="saveNote">Gespeichert ✓</span>
+      </div>
+
+      <details class="help">
+        <summary>Woran erkenne ich, ob Elvanse hilft?</summary>
+        <ul>
+          <li>Nicht am „High“-Gefühl der ersten Tage – das legt sich und ist kein Wirknachweis.</li>
+          <li>Sondern an <b>anhaltender funktioneller Verbesserung über 2–4 Wochen</b> bei stabiler Dosis: Fokus, ins Tun kommen, Tagesfunktion – plus sinkender ASRS-Score im Wochen-Check.</li>
+          <li>Warnsignale: schlechterer Schlaf (früh einnehmen!), anhaltender Appetitverlust, hoher Puls/RR, ausgeprägter Rebound → ärztlich besprechen.</li>
+        </ul>
+      </details>
+    </div>
+    </div>
+
+    <!-- ================= RECHTS: AUSWERTUNG & MODULE ================= -->
+    <div>
+      <div class="stats">
+        <div class="tile"><div class="tlabel">Einträge</div><div class="tvalue" id="stat-count">0</div><div class="tsub" id="stat-since">&nbsp;</div></div>
+        <div class="tile"><div class="tlabel">Ø Fokus, 7 T</div><div class="tvalue" id="stat-fokus">–</div><div class="tsub" id="stat-fokus-d">&nbsp;</div></div>
+        <div class="tile"><div class="tlabel">Ø Stimmung, 7 T</div><div class="tvalue" id="stat-stimmung">–</div><div class="tsub" id="stat-stimmung-d">&nbsp;</div></div>
+        <div class="tile"><div class="tlabel">Ø Tagesfunktion, 7 T</div><div class="tvalue" id="stat-funktion">–</div><div class="tsub" id="stat-funktion-d">&nbsp;</div></div>
+      </div>
+
+      <div class="card">
+        <h2>Verlauf <span class="hint">— Skala 1–10</span></h2>
+        <div class="legend">
+          <span><span class="key" style="background:var(--series-1)"></span>Fokus</span>
+          <span><span class="key" style="background:var(--series-2)"></span>Stimmung</span>
+          <span><span class="key" style="background:var(--series-3)"></span>Tagesfunktion</span>
+        </div>
+        <div id="chartbox">
+          <svg id="chart" height="240" role="img" aria-label="Verlauf von Fokus, Stimmung und Tagesfunktion"></svg>
+          <div id="chart-empty" class="hidden">Ab zwei Einträgen erscheint hier dein Verlauf.</div>
+          <div id="tooltip"></div>
+        </div>
+      </div>
+
+      <!-- Wochen-Check -->
+      <div class="card" id="weeklyCard">
+        <h2>Wochen-Check <span class="hint">— sonntags · ASRS-6 (validierte Kurzskala), Gewicht, Blutdruck</span></h2>
+        <label class="field" for="w-date">Woche <span class="fieldnote">(beliebigen Tag der Woche wählen)</span></label>
+        <input type="date" id="w-date">
+        <div class="section-label">ASRS-6 – wie oft in den letzten 7 Tagen?</div>
+        <div id="asrs-items"></div>
+        <div class="score-line">ASRS-Score: <b id="asrs-score">0</b> / 24 <span class="hint" id="asrs-prev"></span></div>
+        <div class="row4" style="margin-top:10px;">
+          <div><label class="field" for="w-weight">Gewicht (kg)</label><input type="number" id="w-weight" min="30" max="250" step="0.1"></div>
+          <div><label class="field" for="w-bpsys">RR sys</label><input type="number" id="w-bpsys" min="70" max="250"></div>
+          <div><label class="field" for="w-bpdia">RR dia</label><input type="number" id="w-bpdia" min="40" max="150"></div>
+          <div><label class="field" for="w-hr">Puls</label><input type="number" id="w-hr" min="30" max="220"></div>
+        </div>
+        <div class="row2">
+          <div><label class="field" for="w-duration">Typische Wirkdauer (Std.)</label><input type="number" id="w-duration" min="0" max="20" step="0.5" placeholder="z. B. 11"></div>
+          <div><label class="field" for="w-rating">Woche insgesamt vs. Vorwoche</label>
+            <select id="w-rating"><option value="">–</option><option value="deutlich besser">deutlich besser</option><option value="etwas besser">etwas besser</option><option value="gleich">gleich</option><option value="schlechter">schlechter</option></select></div>
+        </div>
+        <label class="field" for="w-notes">Notiz zur Woche</label>
+        <textarea id="w-notes"></textarea>
+
+        <details class="mod" id="phqBox">
+          <summary>PHQ-9 Depressions-Check <span class="hint">— alle 14 Tage</span></summary>
+          <div class="inner">
+            <div class="hint" style="margin-bottom:8px;">Wie oft fühltest du dich in den letzten 2 Wochen durch die folgenden Beschwerden beeinträchtigt?</div>
+            <div id="phq-items"></div>
+            <div class="score-line">PHQ-9-Score: <b id="phq-score">0</b> / 27 · <span id="phq-severity">minimal</span> <span class="hint" id="phq-prev"></span></div>
+            <div class="banner warn hidden" id="phq9-note" style="margin-top:10px;">
+              <div>Du hast bei Frage 9 mehr als „überhaupt nicht“ angegeben. Das ist ein wichtiges Signal – bitte sprich es bei deiner Ärztin an. Wenn es dir akut schlecht geht: Telefonseelsorge <b>0800&nbsp;111&nbsp;0&nbsp;111</b> oder <b>116&nbsp;123</b>, rund um die Uhr und kostenlos.</div>
+            </div>
+          </div>
+        </details>
+
+        <div class="form-actions">
+          <button class="btn primary" onclick="saveWeekly()">Wochen-Check speichern</button>
+          <span class="save-note" id="saveNoteW">Gespeichert ✓</span>
+        </div>
+        <div class="table-scroll" style="margin-top:12px;">
+          <table id="weeklyTable" class="hidden">
+            <thead><tr><th>Woche ab</th><th>ASRS</th><th>PHQ-9</th><th>Gewicht</th><th>RR/Puls</th><th>Eindruck</th></tr></thead>
+            <tbody id="weeklyRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Alle Tageseinträge</h2>
+        <div class="table-scroll">
+          <table>
+            <thead><tr><th>Datum</th><th>mg</th><th>Fok.</th><th>Stim.</th><th>Funk.</th><th>Schlaf</th><th>Bemerkt</th><th></th></tr></thead>
+            <tbody id="entryRows"></tbody>
+          </table>
+        </div>
+        <div id="table-empty" style="color:var(--text-muted);font-size:13px;">Noch keine Einträge.</div>
+      </div>
+
+      <div class="card backup-card">
+        <h2>Datensicherung &amp; PWA-Umzug</h2>
+        <p>Automatische Speicherung in diesem Browser (an diese Datei an diesem Ort gebunden). Der JSON-Export ist Sicherheitskopie <b>und</b> später die Import-Datei für deine PWA (Format v2 laut Spec).</p>
+        <p id="lastExportLine">Letzter Export: noch nie</p>
+        <div class="btnrow">
+          <button class="btn" onclick="exportData()">Sicherung exportieren (JSON v2)</button>
+          <button class="btn" onclick="document.getElementById('importFile').click()">Sicherung importieren</button>
+          <button class="btn" onclick="exportCSV()">Für die Ärztin: CSV</button>
+          <input type="file" id="importFile" accept=".json,application/json" class="hidden" onchange="importData(event)">
+        </div>
+      </div>
+
+      <footer>Dieses Tagebuch ersetzt keine ärztliche Beratung. Bei Herzrasen, Brustschmerz oder starken Stimmungseinbrüchen direkt ärztlich abklären.</footer>
+    </div>
+  </div>
+</div>
+
+<script>
+"use strict";
+const LS_KEY = "elvanse-tagebuch-v2";
+const LS_BACKUP = "elvanse-tagebuch-v2-backup";
+const LS_V1 = "elvanse-tagebuch-v1";
+let state = { entries: {}, weekly: {}, phq9: {}, events: [], settings: {}, lastExport: null };
+let storageOk = false;
+let editingDate = null;
+
+const ASRS_ITEMS = [
+  "Letzte Details einer Aufgabe abschließen, wenn das Schwierige erledigt ist",
+  "Dinge ordnen/organisieren, wenn eine Aufgabe Planung erfordert",
+  "An Termine oder Verpflichtungen denken",
+  "Beginn aufschieben, wenn eine Aufgabe viel Nachdenken erfordert",
+  "Zappeln/Unruhe mit Händen oder Füßen bei längerem Sitzen",
+  "Übermäßig aktiv und getrieben, „wie von einem Motor angetrieben“"
+];
+const ASRS_OPTS = ["0 – nie", "1 – selten", "2 – manchmal", "3 – oft", "4 – sehr oft"];
+const PHQ_ITEMS = [
+  "Wenig Interesse oder Freude an Tätigkeiten",
+  "Niedergeschlagenheit, Schwermut oder Hoffnungslosigkeit",
+  "Ein-/Durchschlafprobleme oder vermehrter Schlaf",
+  "Müdigkeit oder Gefühl, keine Energie zu haben",
+  "Verminderter Appetit oder übermäßiges Essbedürfnis",
+  "Schlechte Meinung von sich selbst; Gefühl zu versagen",
+  "Konzentrationsschwierigkeiten (z. B. beim Lesen/Fernsehen)",
+  "Verlangsamung – oder Gegenteil: rastlose Unruhe",
+  "Gedanken, besser tot zu sein oder sich Leid zuzufügen"
+];
+const PHQ_OPTS = ["0 – überhaupt nicht", "1 – an einzelnen Tagen", "2 – an mehr als der Hälfte der Tage", "3 – beinahe jeden Tag"];
+
+/* ---------- Speicherung ---------- */
+function checkStorage() {
+  try { localStorage.setItem("__t", "1"); localStorage.removeItem("__t"); return true; }
+  catch (e) { return false; }
+}
+function loadState() {
+  if (!storageOk) return;
+  for (const key of [LS_KEY, LS_BACKUP]) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (!raw) continue;
+      const p = JSON.parse(raw);
+      if (p && typeof p.entries === "object") {
+        state = Object.assign({ entries: {}, weekly: {}, phq9: {}, events: [], settings: {}, lastExport: null }, p);
+        return;
+      }
+    } catch (e) { /* Backup versuchen */ }
+  }
+  // Migration aus v1
+  try {
+    const raw = localStorage.getItem(LS_V1);
+    if (raw) {
+      const p = JSON.parse(raw);
+      if (p && p.entries) {
+        for (const [date, e] of Object.entries(p.entries)) state.entries[date] = migrateV1(e);
+        state.lastExport = p.lastExport || null;
+        persist();
+      }
+    }
+  } catch (e) {}
+}
+function migrateV1(e) {
+  return {
+    date: e.date, taken: "ja", dose: e.dose || "", time: e.time || "", wearOff: "",
+    quetiapin: e.quetiapin || "ja",
+    fokus: e.konz ?? 5, task: e.antrieb ?? 5, ruhe: e.ruhe ?? 5, emo: 5,
+    stimmung: e.stimmung ?? 5, funktion: 5,
+    geschafft: e.geschafft || "", sleepHours: e.sleepHours || "", sleepQ: e.sleepQ || "",
+    appetit: e.appetit || "normal", puls: e.puls || "", bpSys: "", bpDia: "",
+    koffein: "", alkohol: "nein",
+    flags: (e.flags || []).filter(f => /Rausch|Rebound/.test(f)).map(f => f.includes("Rausch") ? "Rausch-/High-Gefühl" : "Rebound/Crash"),
+    sideEffects: (e.flags || []).filter(f => !/Rausch|Rebound/.test(f)),
+    notizen: e.notizen || "", updatedAt: new Date().toISOString()
+  };
+}
+function persist() {
+  if (!storageOk) { window.onbeforeunload = confirmLeave; return; }
+  try {
+    const prev = localStorage.getItem(LS_KEY);
+    if (prev) localStorage.setItem(LS_BACKUP, prev);
+    localStorage.setItem(LS_KEY, JSON.stringify(state));
+    window.onbeforeunload = null;
+  } catch (e) {
+    document.getElementById("storageWarn").classList.remove("hidden");
+    window.onbeforeunload = confirmLeave;
+  }
+}
+function confirmLeave(e) { e.preventDefault(); e.returnValue = "Nicht exportierte Einträge gehen verloren."; return e.returnValue; }
+
+/* ---------- Hilfen ---------- */
+const $ = id => document.getElementById(id);
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function mondayOf(iso) {
+  const d = new Date(iso + "T12:00:00");
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function fmtDate(iso) { const [y,m,d] = iso.split("-"); return d + "." + m + "." + y.slice(2); }
+function fmtDateLong(iso) {
+  return new Date(iso + "T12:00:00").toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" });
+}
+function sortedEntries() { return Object.values(state.entries).sort((a,b) => a.date < b.date ? -1 : 1); }
+function nowIso() { return new Date().toISOString(); }
+
+/* ---------- Tages-Formular ---------- */
+const sliders = [["f-fokus","v-fokus"],["f-task","v-task"],["f-ruhe","v-ruhe"],["f-emo","v-emo"],["f-stimmung","v-stimmung"],["f-funktion","v-funktion"]];
+sliders.forEach(([f,v]) => $(f).addEventListener("input", () => { $(v).textContent = $(f).value; }));
+$("f-date").addEventListener("change", () => {
+  const d = $("f-date").value;
+  if (d && state.entries[d]) loadEntryToForm(d);
+  else { editingDate = null; updateFormTitle(); }
+});
+function readForm() {
+  return {
+    date: $("f-date").value, taken: $("f-taken").value,
+    dose: $("f-dose").value, time: $("f-time").value, wearOff: $("f-wearoff").value,
+    quetiapin: $("f-quetiapin").value,
+    fokus: +$("f-fokus").value, task: +$("f-task").value, ruhe: +$("f-ruhe").value,
+    emo: +$("f-emo").value, stimmung: +$("f-stimmung").value, funktion: +$("f-funktion").value,
+    geschafft: $("f-geschafft").value.trim(),
+    sleepHours: $("f-sleephours").value, sleepQ: $("f-sleepq").value,
+    appetit: $("f-appetit").value, puls: $("f-puls").value,
+    bpSys: $("f-bpsys").value, bpDia: $("f-bpdia").value,
+    koffein: $("f-koffein").value, alkohol: $("f-alkohol").value,
+    flags: [...document.querySelectorAll("#f-flags input:checked")].map(c => c.value),
+    sideEffects: [...document.querySelectorAll("#f-se input:checked, #f-se2 input:checked")].map(c => c.value),
+    notizen: $("f-notizen").value.trim(),
+    updatedAt: nowIso()
+  };
+}
+function saveEntry() {
+  const e = readForm();
+  if (!e.date) { alert("Bitte ein Datum wählen."); return; }
+  state.entries[e.date] = e;
+  persist(); renderAll();
+  editingDate = e.date; updateFormTitle();
+  $("btnNew").classList.remove("hidden");
+  flashSave("saveNote");
+}
+function flashSave(id) {
+  const n = $(id); n.classList.add("show");
+  setTimeout(() => n.classList.remove("show"), 1800);
+}
+function loadEntryToForm(date) {
+  const e = state.entries[date];
+  if (!e) return;
+  editingDate = date;
+  $("f-date").value = e.date; $("f-taken").value = e.taken || "ja";
+  $("f-dose").value = e.dose || ""; $("f-time").value = e.time || ""; $("f-wearoff").value = e.wearOff || "";
+  $("f-quetiapin").value = e.quetiapin || "ja";
+  const map = [["f-fokus","v-fokus","fokus"],["f-task","v-task","task"],["f-ruhe","v-ruhe","ruhe"],["f-emo","v-emo","emo"],["f-stimmung","v-stimmung","stimmung"],["f-funktion","v-funktion","funktion"]];
+  for (const [f,v,k] of map) { $(f).value = e[k] ?? 5; $(v).textContent = e[k] ?? 5; }
+  $("f-geschafft").value = e.geschafft || "";
+  $("f-sleephours").value = e.sleepHours || ""; $("f-sleepq").value = e.sleepQ || "";
+  $("f-appetit").value = e.appetit || "normal"; $("f-puls").value = e.puls || "";
+  $("f-bpsys").value = e.bpSys || ""; $("f-bpdia").value = e.bpDia || "";
+  $("f-koffein").value = e.koffein || ""; $("f-alkohol").value = e.alkohol || "nein";
+  document.querySelectorAll("#f-flags input").forEach(c => { c.checked = (e.flags || []).includes(c.value); });
+  document.querySelectorAll("#f-se input, #f-se2 input").forEach(c => { c.checked = (e.sideEffects || []).includes(c.value); });
+  $("f-notizen").value = e.notizen || "";
+  updateFormTitle(); $("btnNew").classList.remove("hidden");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+function resetForm(keepDate) {
+  editingDate = null;
+  if (!keepDate) $("f-date").value = todayStr();
+  const list = sortedEntries();
+  const lastE = list.length ? list[list.length-1] : null;
+  $("f-taken").value = "ja";
+  $("f-dose").value = lastE ? (lastE.dose || "") : "";
+  $("f-time").value = ""; $("f-wearoff").value = "";
+  $("f-quetiapin").value = lastE ? (lastE.quetiapin || "ja") : "ja";
+  sliders.forEach(([f,v]) => { $(f).value = 5; $(v).textContent = 5; });
+  $("f-geschafft").value = ""; $("f-sleephours").value = ""; $("f-sleepq").value = "";
+  $("f-appetit").value = "normal"; $("f-puls").value = ""; $("f-bpsys").value = ""; $("f-bpdia").value = "";
+  $("f-koffein").value = ""; $("f-alkohol").value = "nein"; $("f-notizen").value = "";
+  document.querySelectorAll("#f-flags input, #f-se input, #f-se2 input").forEach(c => c.checked = false);
+  updateFormTitle(); $("btnNew").classList.add("hidden");
+}
+function updateFormTitle() {
+  const d = $("f-date").value;
+  if (editingDate) $("formTitle").textContent = "Eintrag bearbeiten – " + fmtDate(editingDate);
+  else if (d === todayStr()) $("formTitle").textContent = "Heutiger Eintrag";
+  else $("formTitle").textContent = "Eintrag – " + (d ? fmtDate(d) : "");
+}
+
+/* ---------- Löschen (zweistufig) ---------- */
+let pendingDelete = null;
+function askDelete(date, btn) {
+  if (pendingDelete === date) {
+    delete state.entries[date]; pendingDelete = null;
+    persist(); renderAll();
+    if (editingDate === date) resetForm();
+  } else {
+    pendingDelete = date; btn.textContent = "Wirklich löschen?";
+    setTimeout(() => { pendingDelete = null; renderTable(); }, 3000);
+  }
+}
+
+/* ---------- Wochen-Check ---------- */
+function buildQuestionRows(containerId, items, opts, prefix, onChange) {
+  const box = $(containerId);
+  box.innerHTML = "";
+  items.forEach((text, i) => {
+    const row = document.createElement("div");
+    row.className = "qrow";
+    const sel = document.createElement("select");
+    sel.id = prefix + i;
+    sel.innerHTML = opts.map((o, v) => `<option value="${v}">${o}</option>`).join("");
+    sel.addEventListener("change", onChange);
+    const label = document.createElement("div");
+    label.className = "qtext";
+    label.textContent = (i+1) + ". " + text;
+    row.appendChild(label); row.appendChild(sel);
+    box.appendChild(row);
+  });
+}
+function asrsScore() { let s = 0; for (let i = 0; i < 6; i++) s += +$("a" + i).value; return s; }
+function phqScore() { let s = 0; for (let i = 0; i < 9; i++) s += +$("p" + i).value; return s; }
+function phqSeverity(s) {
+  return s <= 4 ? "minimal" : s <= 9 ? "mild" : s <= 14 ? "moderat" : s <= 19 ? "mittelgradig schwer" : "schwer";
+}
+function updateAsrsUI() {
+  $("asrs-score").textContent = asrsScore();
+  const ws = mondayOf($("w-date").value || todayStr());
+  const weeks = Object.keys(state.weekly).filter(k => k < ws).sort();
+  if (weeks.length) {
+    const prev = state.weekly[weeks[weeks.length-1]];
+    if (prev && prev.asrsScore != null) $("asrs-prev").textContent = "(Vorwoche: " + prev.asrsScore + ")";
+  }
+}
+function updatePhqUI() {
+  const s = phqScore();
+  $("phq-score").textContent = s;
+  $("phq-severity").textContent = phqSeverity(s);
+  $("phq9-note").classList.toggle("hidden", +$("p8").value === 0);
+  const dates = Object.keys(state.phq9).sort();
+  if (dates.length) {
+    const prev = state.phq9[dates[dates.length-1]];
+    if (prev) $("phq-prev").textContent = "(zuletzt: " + prev.score + ")";
+  }
+}
+function loadWeeklyToForm(ws) {
+  const w = state.weekly[ws];
+  for (let i = 0; i < 6; i++) $("a" + i).value = w && w.asrs ? (w.asrs[i] ?? 0) : 0;
+  $("w-weight").value = w ? (w.weight || "") : "";
+  $("w-bpsys").value = w ? (w.bpSys || "") : "";
+  $("w-bpdia").value = w ? (w.bpDia || "") : "";
+  $("w-hr").value = w ? (w.hr || "") : "";
+  $("w-duration").value = w ? (w.effectDurationH || "") : "";
+  $("w-rating").value = w ? (w.rating || "") : "";
+  $("w-notes").value = w ? (w.notes || "") : "";
+  updateAsrsUI();
+}
+function saveWeekly() {
+  const ws = mondayOf($("w-date").value || todayStr());
+  const w = {
+    weekStart: ws,
+    asrs: Array.from({length: 6}, (_, i) => +$("a" + i).value),
+    asrsScore: asrsScore(),
+    weight: $("w-weight").value, bpSys: $("w-bpsys").value, bpDia: $("w-bpdia").value, hr: $("w-hr").value,
+    effectDurationH: $("w-duration").value, rating: $("w-rating").value,
+    notes: $("w-notes").value.trim(), updatedAt: nowIso()
+  };
+  state.weekly[ws] = w;
+  // PHQ-9 nur speichern, wenn mindestens eine Antwort > 0 oder das Modul geöffnet wurde
+  const answers = Array.from({length: 9}, (_, i) => +$("p" + i).value);
+  if ($("phqBox").open || answers.some(v => v > 0)) {
+    state.phq9[todayStr()] = { date: todayStr(), answers, score: phqScore(), updatedAt: nowIso() };
+  }
+  persist(); renderAll(); flashSave("saveNoteW");
+}
+function renderWeeklyTable() {
+  const keys = Object.keys(state.weekly).sort().reverse();
+  $("weeklyTable").classList.toggle("hidden", keys.length === 0);
+  const tbody = $("weeklyRows");
+  tbody.innerHTML = "";
+  for (const k of keys) {
+    const w = state.weekly[k];
+    const phqInWeek = Object.values(state.phq9).filter(p => mondayOf(p.date) === k);
+    const phqTxt = phqInWeek.length ? phqInWeek[phqInWeek.length-1].score : "–";
+    const tr = document.createElement("tr");
+    tr.innerHTML = "<td>" + fmtDate(k) + "</td><td>" + (w.asrsScore ?? "–") + "</td><td>" + phqTxt + "</td>" +
+      "<td>" + (w.weight || "–") + "</td>" +
+      "<td>" + (w.bpSys ? w.bpSys + "/" + (w.bpDia || "?") : "–") + (w.hr ? " · " + w.hr : "") + "</td>" +
+      "<td>" + (w.rating || "–") + "</td>";
+    tbody.appendChild(tr);
+  }
+  // Erinnerung: aktueller Wochen-Check fehlt und es ist Sonntag oder später kein Check
+  const curWeek = mondayOf(todayStr());
+  const missing = !state.weekly[curWeek] && Object.keys(state.entries).length >= 3 && new Date().getDay() === 0;
+  $("weeklyRemind").classList.toggle("hidden", !missing);
+}
+
+/* ---------- Tabelle & Stats ---------- */
+function renderTable() {
+  const list = sortedEntries().slice().reverse();
+  const tbody = $("entryRows");
+  tbody.innerHTML = "";
+  $("table-empty").classList.toggle("hidden", list.length > 0);
+  for (const e of list) {
+    const tr = document.createElement("tr");
+    const bemerkt = [...(e.flags || []), ...(e.sideEffects || [])].join(", ");
+    tr.innerHTML =
+      "<td>" + fmtDate(e.date) + "</td><td>" + (e.taken === "nein" ? "–" : (e.dose || "?")) + "</td>" +
+      "<td>" + e.fokus + "</td><td>" + e.stimmung + "</td><td>" + e.funktion + "</td>" +
+      "<td>" + (e.sleepHours ? e.sleepHours + " h" + (e.sleepQ ? " / " + e.sleepQ : "") : "–") + "</td>" +
+      "<td class='flags'>" + (bemerkt || "–") + "</td>" +
+      "<td style='white-space:nowrap'>" +
+        "<button class='btn small' onclick='loadEntryToForm(\"" + e.date + "\")'>Bearb.</button> " +
+        "<button class='btn small danger-ghost' onclick='askDelete(\"" + e.date + "\", this)'>Löschen</button></td>";
+    tbody.appendChild(tr);
+  }
+}
+function avg(arr) { const v = arr.filter(x => typeof x === "number"); return v.length ? v.reduce((a,b) => a+b, 0) / v.length : null; }
+function renderStats() {
+  const list = sortedEntries();
+  $("stat-count").textContent = list.length;
+  $("stat-since").textContent = list.length ? "seit " + fmtDate(list[0].date) : "";
+  const last7 = list.slice(-7), prev7 = list.slice(-14, -7);
+  for (const [key, valId, dId] of [["fokus","stat-fokus","stat-fokus-d"], ["stimmung","stat-stimmung","stat-stimmung-d"], ["funktion","stat-funktion","stat-funktion-d"]]) {
+    const a = avg(last7.map(e => e[key]));
+    $(valId).textContent = a === null ? "–" : a.toFixed(1);
+    const b = avg(prev7.map(e => e[key]));
+    $(dId).textContent = (a !== null && b !== null) ? ((a-b >= 0 ? "+" : "") + (a-b).toFixed(1) + " ggü. Vorwoche") : "";
+  }
+}
+
+/* ---------- Diagramm ---------- */
+const SERIES = [
+  { key: "fokus", name: "Fokus", cssVar: "--series-1" },
+  { key: "stimmung", name: "Stimmung", cssVar: "--series-2" },
+  { key: "funktion", name: "Tagesfunktion", cssVar: "--series-3" }
+];
+let chartPts = [];
+function cssv(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+function renderChart() {
+  const svg = $("chart");
+  const list = sortedEntries();
+  const empty = $("chart-empty");
+  svg.innerHTML = ""; chartPts = [];
+  if (list.length < 2) { empty.classList.remove("hidden"); svg.setAttribute("height", "0"); return; }
+  empty.classList.add("hidden"); svg.setAttribute("height", "240");
+  const W = svg.clientWidth || 560, H = 240;
+  const padL = 26, padR = 118, padT = 10, padB = 26;
+  const iw = W - padL - padR, ih = H - padT - padB;
+  const t0 = new Date(list[0].date + "T12:00:00").getTime();
+  const t1 = new Date(list[list.length-1].date + "T12:00:00").getTime();
+  const xOf = d => padL + (t1 === t0 ? iw/2 : (new Date(d + "T12:00:00").getTime() - t0) / (t1 - t0) * iw);
+  const yOf = v => padT + (10 - v) / 9 * ih;
+  const surface = cssv("--surface-1") || "#fcfcfb";
+  let g = "";
+  for (const v of [1, 5, 10]) {
+    const y = yOf(v);
+    g += `<line x1="${padL}" y1="${y}" x2="${W-padR}" y2="${y}" stroke="${cssv('--grid')}" stroke-width="1"/>`;
+    g += `<text x="${padL-8}" y="${y+4}" text-anchor="end" font-size="11" fill="${cssv('--text-muted')}">${v}</text>`;
+  }
+  const step = Math.max(1, Math.ceil(list.length / 6));
+  list.forEach((e, i) => {
+    if (i % step === 0 || i === list.length - 1) {
+      let anchor = "middle", tx = xOf(e.date);
+      if (i === 0) { anchor = "start"; tx = Math.max(tx - 40, 2); }
+      else if (i === list.length - 1) { anchor = "end"; tx = Math.min(tx + 40, W - 2); }
+      g += `<text x="${tx}" y="${H-8}" text-anchor="${anchor}" font-size="11" fill="${cssv('--text-muted')}">${fmtDateLong(e.date)}</text>`;
+    }
+  });
+  const endLabels = [];
+  for (const s of SERIES) {
+    const color = cssv(s.cssVar);
+    const pts = list.map(e => [xOf(e.date), yOf(e[s.key] ?? 5)]);
+    const path = pts.map((p,i) => (i ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1)).join(" ");
+    g += `<path d="${path}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    for (const [x,y] of pts) g += `<circle cx="${x}" cy="${y}" r="6" fill="${surface}"/><circle cx="${x}" cy="${y}" r="4" fill="${color}"/>`;
+    const last = pts[pts.length-1];
+    endLabels.push({ y: last[1], x: last[0], name: s.name, color });
+  }
+  endLabels.sort((a,b) => a.y - b.y);
+  for (let i = 1; i < endLabels.length; i++)
+    if (endLabels[i].y - endLabels[i-1].y < 15) endLabels[i].y = endLabels[i-1].y + 15;
+  for (const l of endLabels) {
+    g += `<circle cx="${l.x + 12}" cy="${l.y - 3}" r="3.5" fill="${l.color}"/>`;
+    g += `<text x="${l.x + 19}" y="${l.y}" font-size="11" fill="${cssv('--text-secondary')}">${l.name}</text>`;
+  }
+  g += `<line id="crosshair" x1="0" y1="${padT}" x2="0" y2="${H-padB}" stroke="${cssv('--baseline')}" stroke-width="1" visibility="hidden"/>`;
+  svg.innerHTML = g;
+  chartPts = list.map(e => ({ x: xOf(e.date), entry: e }));
+}
+const chartbox = $("chartbox");
+chartbox.addEventListener("mousemove", ev => {
+  if (!chartPts.length) return;
+  const svgRect = $("chart").getBoundingClientRect();
+  const mx = ev.clientX - svgRect.left;
+  let best = chartPts[0];
+  for (const p of chartPts) if (Math.abs(p.x - mx) < Math.abs(best.x - mx)) best = p;
+  const ch = document.getElementById("crosshair");
+  if (ch) { ch.setAttribute("x1", best.x); ch.setAttribute("x2", best.x); ch.setAttribute("visibility", "visible"); }
+  const e = best.entry, tt = $("tooltip");
+  tt.innerHTML = `<div class="tt-date">${fmtDateLong(e.date)}${e.dose ? " · " + e.dose + " mg" : ""}</div>` +
+    `<div class="tt-row"><span>Fokus</span><b>${e.fokus}</b></div>` +
+    `<div class="tt-row"><span>Stimmung</span><b>${e.stimmung}</b></div>` +
+    `<div class="tt-row"><span>Tagesfunktion</span><b>${e.funktion}</b></div>` +
+    `<div class="tt-row"><span>Ins Tun kommen</span><b>${e.task ?? "–"}</b></div>` +
+    (e.sleepHours ? `<div class="tt-row"><span>Schlaf</span><b>${e.sleepHours} h</b></div>` : "");
+  tt.style.display = "block";
+  const boxRect = chartbox.getBoundingClientRect();
+  let left = best.x + 14;
+  if (left + 180 > boxRect.width) left = best.x - 194;
+  tt.style.left = left + "px"; tt.style.top = "18px";
+});
+chartbox.addEventListener("mouseleave", () => {
+  $("tooltip").style.display = "none";
+  const ch = document.getElementById("crosshair");
+  if (ch) ch.setAttribute("visibility", "hidden");
+});
+
+/* ---------- Export / Import (Format v2, PWA-kompatibel) ---------- */
+function download(filename, text, mime) {
+  const blob = new Blob([text], { type: mime || "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function exportData() {
+  const payload = {
+    app: "elvanse-tagebuch", version: 2, exported: new Date().toISOString(),
+    entries: state.entries, weekly: state.weekly, phq9: state.phq9,
+    events: state.events, settings: state.settings
+  };
+  download("elvanse-tagebuch-" + todayStr() + ".json", JSON.stringify(payload, null, 2));
+  state.lastExport = Date.now();
+  persist(); renderBackupInfo();
+}
+function exportCSV() {
+  const cols = ["Datum","Genommen","Dosis (mg)","Einnahme","Wirkende","Fokus","Ins Tun kommen","Innere Ruhe","Emot. Ausgeglichenheit","Stimmung","Tagesfunktion","Schlaf (h)","Schlafqualität","Appetit","Ruhepuls","RR sys","RR dia","Koffein","Alkohol","Quetiapin","Rausch/Rebound","Nebenwirkungen","Geschafft","Notizen"];
+  const esc = s => '"' + String(s ?? "").replace(/"/g, '""') + '"';
+  const rows = sortedEntries().map(e => [
+    e.date, e.taken, e.dose, e.time, e.wearOff, e.fokus, e.task, e.ruhe, e.emo, e.stimmung, e.funktion,
+    e.sleepHours, e.sleepQ, e.appetit, e.puls, e.bpSys, e.bpDia, e.koffein, e.alkohol, e.quetiapin,
+    (e.flags||[]).join("; "), (e.sideEffects||[]).join("; "), e.geschafft, e.notizen
+  ].map(esc).join(";"));
+  const wrows = Object.keys(state.weekly).sort().map(k => {
+    const w = state.weekly[k];
+    return [k, "ASRS " + (w.asrsScore ?? "–") + "/24", "Gewicht " + (w.weight || "–") + " kg",
+      "RR " + (w.bpSys || "–") + "/" + (w.bpDia || "–") + " Puls " + (w.hr || "–"),
+      "Wirkdauer " + (w.effectDurationH || "–") + " h", w.rating || "–", w.notes || ""].map(esc).join(";");
+  });
+  let csv = "﻿" + cols.map(esc).join(";") + "\n" + rows.join("\n");
+  if (wrows.length) csv += "\n\n" + esc("Wochen-Checks (Woche ab; ASRS; Gewicht; RR/Puls; Wirkdauer; Eindruck; Notiz)") + "\n" + wrows.join("\n");
+  download("elvanse-tagebuch-" + todayStr() + ".csv", csv, "text/csv");
+}
+function importData(ev) {
+  const file = ev.target.files[0];
+  ev.target.value = "";
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const p = JSON.parse(reader.result);
+      let added = 0, updated = 0;
+      const isV1 = p.version === 1 || (p.entries && Object.values(p.entries)[0] && "konz" in Object.values(p.entries)[0]);
+      for (const [date, e] of Object.entries(p.entries || {})) {
+        if (!e || !e.date) continue;
+        if (state.entries[date]) updated++; else added++;
+        state.entries[date] = isV1 ? migrateV1(e) : e;
+      }
+      for (const coll of ["weekly", "phq9"]) {
+        for (const [k, v] of Object.entries(p[coll] || {})) state[coll][k] = v;
+      }
+      if (Array.isArray(p.events)) state.events = p.events;
+      persist(); renderAll();
+      alert("Import fertig: " + added + " neue Tageseinträge, " + updated + " aktualisiert" + (isV1 ? " (aus v1 migriert)" : "") + ".");
+    } catch (err) {
+      alert("Die Datei konnte nicht gelesen werden. Bitte eine exportierte JSON-Datei wählen.");
+    }
+  };
+  reader.readAsText(file);
+}
+function renderBackupInfo() {
+  const line = $("lastExportLine");
+  if (state.lastExport) {
+    line.textContent = "Letzter Export: " + new Date(state.lastExport).toLocaleDateString("de-DE") +
+      ", " + new Date(state.lastExport).toLocaleTimeString("de-DE", {hour:"2-digit",minute:"2-digit"}) + " Uhr";
+  } else line.textContent = "Letzter Export: noch nie";
+  const count = Object.keys(state.entries).length;
+  const stale = count >= 3 && (!state.lastExport || Date.now() - state.lastExport > 7 * 864e5);
+  $("exportRemind").classList.toggle("hidden", !stale);
+}
+
+/* ---------- Init ---------- */
+function renderAll() { renderTable(); renderStats(); renderChart(); renderWeeklyTable(); renderBackupInfo(); }
+storageOk = checkStorage();
+if (!storageOk) {
+  $("storageWarn").classList.remove("hidden");
+  $("storageLine").innerHTML = '<span class="dot bad"></span>Keine dauerhafte Speicherung möglich – bitte Export nutzen!';
+}
+loadState();
+buildQuestionRows("asrs-items", ASRS_ITEMS, ASRS_OPTS, "a", updateAsrsUI);
+buildQuestionRows("phq-items", PHQ_ITEMS, PHQ_OPTS, "p", updatePhqUI);
+$("w-date").value = todayStr();
+$("w-date").addEventListener("change", () => loadWeeklyToForm(mondayOf($("w-date").value || todayStr())));
+loadWeeklyToForm(mondayOf(todayStr()));
+resetForm();
+if (state.entries[todayStr()]) loadEntryToForm(todayStr());
+renderAll();
+let resizeT;
+window.addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(renderChart, 150); });
+</script>
+</body>
+</html>
