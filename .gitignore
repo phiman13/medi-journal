@@ -16,4 +16,8 @@ data/
 # Backups
 backups/
 
+# Enthält echte Gesundheitsdaten - bewusst nicht im öffentlichen Repo,
+# bleibt nur lokal für den Import-Test (SPEC.md §11, AK4)
+fixtures/bridge-export.json
+
 .DS_Store

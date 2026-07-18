@@ -15,6 +15,9 @@ export const config = {
   // bleibt im Docker-Image erhalten, daher funktioniert der relative Pfad in
   // Dev (tsx, läuft aus server/src) und Prod (node, läuft aus server/dist) gleich.
   staticDir: process.env.STATIC_DIR ?? join(__dirname, "..", "..", "app", "dist"),
+  // Backup-Cron (SPEC.md §4.4). In Docker gemountet unter /backups
+  // (docker-compose.yml); lokal ein relativer Ordner.
+  backupDir: process.env.BACKUP_DIR ?? "./backups",
   // Master-Passwort-Auth (SPEC.md §4.3). Hash erzeugen mit: npm run hash-password -- <passwort>
   get masterPasswordHash(): string {
     return required("MASTER_PASSWORD_HASH");

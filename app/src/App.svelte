@@ -4,6 +4,7 @@
   import Login from "./components/Login.svelte";
   import DailyEntryForm from "./components/DailyEntryForm.svelte";
   import Dashboard from "./components/Dashboard.svelte";
+  import UpdateBanner from "./components/UpdateBanner.svelte";
 
   let view = $state<"entry" | "dashboard">("entry");
 
@@ -17,6 +18,7 @@
 </script>
 
 <main>
+  <UpdateBanner />
   {#if $authenticated}
     <nav>
       <button type="button" onclick={() => (view = "entry")} aria-current={view === "entry"}>

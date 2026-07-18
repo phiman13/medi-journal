@@ -3,6 +3,7 @@ import { dirname } from "node:path";
 import { config } from "./config";
 import { openDb } from "./db";
 import { buildApp } from "./app";
+import { startBackupScheduler } from "./scheduler";
 
 try {
   process.loadEnvFile();
@@ -20,6 +21,8 @@ async function main(): Promise<void> {
     sessionSecret: config.sessionSecret,
     staticDir: config.staticDir,
   });
+
+  startBackupScheduler(db, config.backupDir);
 
   await app.listen({ port: config.port, host: "0.0.0.0" });
 }
