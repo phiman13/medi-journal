@@ -42,6 +42,25 @@ describe("saveEntry", () => {
     const stored = await db.daily_entries.get("2026-07-17");
     expect(stored?.sync_status).toBe("pending");
   });
+
+  it("speichert auch bei verschachtelten Proxy-Feldern (wie Sveltes $state) ohne DataCloneError", async () => {
+    // Regression: IndexedDB kann keine Proxies klonen. Svelte 5 kapselt
+    // $state-Werte TIEF in Proxies - die Objekt-Spread in saveEntry()
+    // entproxied nur die oberste Ebene, ein verschachteltes Feld wie
+    // `side_effects` bleibt sonst ein Proxy und lässt den lokalen
+    // Schreibvorgang unbemerkt scheitern (im Formular gefunden, nicht durch
+    // die bisherigen Tests, die immer mit reinen Objekten arbeiteten).
+    const { saveEntry } = await import("../src/lib/sync");
+    const entry = emptyEntry("2026-07-17");
+    entry.side_effects = new Proxy(["kopfschmerzen"], {});
+    vi.mocked(api.pushDailyEntry).mockRejectedValue(new Error("offline"));
+
+    await expect(saveEntry(entry)).resolves.toBeUndefined();
+
+    const stored = await db.daily_entries.get("2026-07-17");
+    expect(stored).toBeDefined();
+    expect(stored?.sync_status).toBe("pending");
+  });
 });
 
 describe("pushPending", () => {

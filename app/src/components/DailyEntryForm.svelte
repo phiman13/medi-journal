@@ -10,6 +10,7 @@
   let entry = $state<DailyEntry>(emptyEntry(today));
   let saving = $state(false);
   let savedStatus = $state<"idle" | "local" | "synced">("idle");
+  let saveError = $state<string | null>(null);
 
   async function findPreviousValue(
     beforeDate: string,
@@ -58,10 +59,21 @@
     event.preventDefault();
     saving = true;
     savedStatus = "local";
-    await saveEntry(entry);
-    const stored = await db.daily_entries.get(entry.date);
-    savedStatus = stored?.sync_status === "synced" ? "synced" : "local";
-    saving = false;
+    saveError = null;
+    try {
+      // $state.snapshot(): Dexie/IndexedDB (structured clone) kann den
+      // reaktiven $state-Proxy nicht klonen - ohne Snapshot schlägt der
+      // Schreibvorgang unbemerkt fehl (Svelte-5-Falle).
+      await saveEntry($state.snapshot(entry));
+      const stored = await db.daily_entries.get(entry.date);
+      savedStatus = stored?.sync_status === "synced" ? "synced" : "local";
+    } catch (error) {
+      console.error("Speichern fehlgeschlagen", error);
+      savedStatus = "idle";
+      saveError = "Speichern fehlgeschlagen. Bitte erneut versuchen.";
+    } finally {
+      saving = false;
+    }
   }
 
   function toggleInList(list: string[], key: string): string[] {
@@ -219,4 +231,7 @@
       lokal gespeichert · synchronisiert …
     {/if}
   </p>
+  {#if saveError}
+    <p role="alert">{saveError}</p>
+  {/if}
 </form>
