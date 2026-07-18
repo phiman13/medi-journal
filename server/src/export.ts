@@ -1,6 +1,7 @@
 import type { DailyEntryRecord } from "./db/dailyEntries";
 import type { WeeklyCheckRecord } from "./db/weeklyChecks";
 import type { Phq9CheckRecord } from "./db/phq9Checks";
+import type { EventRecord } from "./db/events";
 
 // SPEC.md §5.6 zeigt "entries: {...Feldnamen wie §3.1...}" im Beispiel-JSON -
 // das native Export-Schema nutzt also DB-Feldnamen (snake_case), NICHT die
@@ -45,6 +46,7 @@ export function buildExportEnvelope(
   entries: DailyEntryRecord[],
   weekly: WeeklyCheckRecord[] = [],
   phq9: Phq9CheckRecord[] = [],
+  events: EventRecord[] = [],
   now = new Date(),
 ): ExportEnvelope {
   return {
@@ -54,8 +56,7 @@ export function buildExportEnvelope(
     entries: toMap(entries, "date"),
     weekly: toMap(weekly, "week_start"),
     phq9: toMap(phq9, "date"),
-    // events folgt erst mit M4d (Events+Chart-Marker).
-    events: [],
+    events: events.map(stripSyncFields),
     settings: {},
   };
 }

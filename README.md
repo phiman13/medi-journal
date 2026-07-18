@@ -73,7 +73,7 @@ da rclone-Zugangsdaten nicht ins App-Image gehören.
 
 ## Status
 
-M1–M4 (ohne Events+Chart-Marker, folgt als M4d) umgesetzt. Siehe
+M1–M4 vollständig umgesetzt. Siehe
 `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter

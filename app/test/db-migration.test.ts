@@ -46,8 +46,19 @@ describe("Dexie-Migration v1 -> aktuelle Version", () => {
       updated_at: "x",
       sync_status: "pending",
     } as never);
+    await upgraded.events.put({
+      id: "evt-1",
+      date: "2026-07-10",
+      type: "sonstiges",
+      title: "Test",
+      details: null,
+      updated_at: "x",
+      deleted_at: null,
+      sync_status: "pending",
+    } as never);
     expect(await upgraded.weekly_checks.get("2026-07-13")).toBeDefined();
     expect(await upgraded.phq9_checks.get("2026-07-14")).toBeDefined();
+    expect(await upgraded.events.get("evt-1")).toBeDefined();
 
     upgraded.close();
     await Dexie.delete(TEST_DB_NAME);

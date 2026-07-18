@@ -39,7 +39,13 @@ function entry(overrides: Partial<DailyEntryRecord> = {}): DailyEntryRecord {
 
 describe("buildExportEnvelope", () => {
   it("nutzt version 3 (natives Schema) und Feldnamen wie §3.1", () => {
-    const envelope = buildExportEnvelope([entry()], [], [], new Date("2026-07-18T21:00:00.000Z"));
+    const envelope = buildExportEnvelope(
+      [entry()],
+      [],
+      [],
+      [],
+      new Date("2026-07-18T21:00:00.000Z"),
+    );
 
     expect(envelope.app).toBe("medi-journal");
     expect(envelope.version).toBe(EXPORT_VERSION);
@@ -53,7 +59,7 @@ describe("buildExportEnvelope", () => {
     expect(envelope.entries["2026-07-18"]).not.toHaveProperty("server_received_at");
   });
 
-  it("nimmt weekly/phq9-Records als Map auf, events ist vor M4d leer", () => {
+  it("nimmt weekly/phq9-Records als Map auf, events bleibt leer wenn keine übergeben werden", () => {
     const envelope = buildExportEnvelope(
       [],
       [
@@ -76,6 +82,28 @@ describe("buildExportEnvelope", () => {
     expect(envelope.weekly["2026-07-13"].asrs_score).toBe(6);
     expect(envelope.phq9["2026-07-14"].score).toBe(0);
     expect(envelope.events).toEqual([]);
+  });
+
+  it("nimmt events als Array auf und entfernt interne Sync-Felder", () => {
+    const envelope = buildExportEnvelope(
+      [],
+      [],
+      [],
+      [
+        {
+          id: "evt-1",
+          date: "2026-07-10",
+          type: "dosisänderung",
+          title: "Elvanse 30 → 50 mg",
+          details: null,
+          updated_at: "2026-07-10T20:00:00.000Z",
+          server_received_at: "2026-07-10T20:00:01.000Z",
+        },
+      ],
+    );
+    expect(envelope.events).toHaveLength(1);
+    expect(envelope.events[0]).toMatchObject({ id: "evt-1", title: "Elvanse 30 → 50 mg" });
+    expect(envelope.events[0]).not.toHaveProperty("server_received_at");
   });
 });
 

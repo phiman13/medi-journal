@@ -2,6 +2,7 @@ import type { FastifyInstance } from "fastify";
 import { listDailyEntriesSince } from "../db/dailyEntries";
 import { listWeeklyChecksSince } from "../db/weeklyChecks";
 import { listPhq9ChecksSince } from "../db/phq9Checks";
+import { listEventsSince } from "../db/events";
 import { buildExportEnvelope, toCsv } from "../export";
 
 export async function exportRoutes(app: FastifyInstance): Promise<void> {
@@ -9,7 +10,8 @@ export async function exportRoutes(app: FastifyInstance): Promise<void> {
     const entries = listDailyEntriesSince(app.db, undefined);
     const weekly = listWeeklyChecksSince(app.db, undefined);
     const phq9 = listPhq9ChecksSince(app.db, undefined);
-    return reply.send(buildExportEnvelope(entries, weekly, phq9));
+    const events = listEventsSince(app.db, undefined);
+    return reply.send(buildExportEnvelope(entries, weekly, phq9, events));
   });
 
   app.get("/api/v1/export.csv", async (_request, reply) => {

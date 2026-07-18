@@ -1,6 +1,7 @@
 import type { DailyEntry } from "./dailyEntry";
 import type { WeeklyCheck } from "./weeklyCheck";
 import type { Phq9Check } from "./phq9";
+import type { JournalEvent } from "./event";
 
 export class UnauthenticatedError extends Error {}
 
@@ -52,6 +53,7 @@ export interface PullResult {
   daily_entries: DailyEntry[];
   weekly_checks: WeeklyCheck[];
   phq9_checks: Phq9Check[];
+  events: JournalEvent[];
 }
 
 export async function pullSince(since: string | undefined): Promise<PullResult> {
@@ -68,5 +70,6 @@ export async function pullSince(since: string | undefined): Promise<PullResult> 
     daily_entries: body.tables.daily_entries,
     weekly_checks: body.tables.weekly_checks,
     phq9_checks: body.tables.phq9_checks,
+    events: body.tables.events,
   };
 }

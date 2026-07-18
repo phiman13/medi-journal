@@ -8,10 +8,11 @@
   import DailyEntryForm from "./components/DailyEntryForm.svelte";
   import WeeklyCheckForm from "./components/WeeklyCheckForm.svelte";
   import Phq9Form from "./components/Phq9Form.svelte";
+  import EventForm from "./components/EventForm.svelte";
   import Dashboard from "./components/Dashboard.svelte";
   import UpdateBanner from "./components/UpdateBanner.svelte";
 
-  let view = $state<"entry" | "weekly" | "phq9" | "dashboard">("entry");
+  let view = $state<"entry" | "weekly" | "phq9" | "events" | "dashboard">("entry");
   let weeklyCheckDue = $state(false);
   let phq9Due = $state(false);
 
@@ -53,6 +54,9 @@
       <button type="button" onclick={() => (view = "phq9")} aria-current={view === "phq9"}>
         PHQ-9{phq9Due ? " •" : ""}
       </button>
+      <button type="button" onclick={() => (view = "events")} aria-current={view === "events"}>
+        Ereignisse
+      </button>
       <button type="button" onclick={() => (view = "dashboard")} aria-current={view === "dashboard"}>
         Verlauf
       </button>
@@ -73,6 +77,8 @@
       <WeeklyCheckForm />
     {:else if view === "phq9"}
       <Phq9Form />
+    {:else if view === "events"}
+      <EventForm />
     {:else}
       <Dashboard />
     {/if}

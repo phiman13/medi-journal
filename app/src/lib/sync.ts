@@ -3,6 +3,7 @@ import { pullSince, pushRecord } from "./api";
 import type { DailyEntry } from "./dailyEntry";
 import type { WeeklyCheck } from "./weeklyCheck";
 import type { Phq9Check } from "./phq9";
+import type { JournalEvent } from "./event";
 
 const LAST_SYNC_CURSOR_KEY = "lastSyncCursor";
 
@@ -112,6 +113,10 @@ export function savePhq9Check(check: Phq9Check): Promise<void> {
   );
 }
 
+export function saveEvent(event: JournalEvent): Promise<void> {
+  return saveRecord(db.events as unknown as SyncableTable, "events", event as unknown as Syncable);
+}
+
 // Für Tests/gezieltes Nachziehen einzelner Entities.
 export function applyPulledEntries(records: DailyEntry[]): Promise<void> {
   return applyPulledRecords(
@@ -125,6 +130,7 @@ export async function pushPending(): Promise<void> {
   await pushPendingForTable(db.daily_entries as unknown as SyncableTable, "daily_entries");
   await pushPendingForTable(db.weekly_checks as unknown as SyncableTable, "weekly_checks");
   await pushPendingForTable(db.phq9_checks as unknown as SyncableTable, "phq9_checks");
+  await pushPendingForTable(db.events as unknown as SyncableTable, "events");
 }
 
 export async function pullChanges(): Promise<void> {
@@ -144,6 +150,11 @@ export async function pullChanges(): Promise<void> {
     db.phq9_checks as unknown as SyncableTable,
     "date",
     result.phq9_checks as unknown as Syncable[],
+  );
+  await applyPulledRecords(
+    db.events as unknown as SyncableTable,
+    "id",
+    result.events as unknown as Syncable[],
   );
   await setMeta(LAST_SYNC_CURSOR_KEY, result.since);
 }
