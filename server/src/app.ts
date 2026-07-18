@@ -7,6 +7,7 @@ import { healthzRoutes } from "./routes/healthz";
 import { authRoutes } from "./routes/auth";
 import { syncRoutes } from "./routes/sync";
 import { exportRoutes } from "./routes/export";
+import { importRoutes } from "./routes/import";
 
 export interface AppOptions {
   db: Database.Database;
@@ -36,6 +37,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register((instance) => authRoutes(instance, options.masterPasswordHash));
   await app.register(syncRoutes);
   await app.register(exportRoutes);
+  await app.register(importRoutes);
 
   // app/dist existiert erst nach "npm run build --workspace app". In der
   // Entwicklung läuft das Frontend über den separaten Vite-Dev-Server (Proxy

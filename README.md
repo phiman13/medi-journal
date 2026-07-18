@@ -63,10 +63,19 @@ bei gestopptem Server.
 per Host-Cron wöchentlich aufrufen. Läuft bewusst außerhalb des Containers,
 da rclone-Zugangsdaten nicht ins App-Image gehören.
 
+## Import/Export
+
+- `GET /api/v1/export.json` — Vollexport, natives Schema (§3.1-Feldnamen, `version: 3`)
+- `GET /api/v1/export.csv` — eine Zeile pro Tag, deutsche Spaltenköpfe, `;`-getrennt, UTF-8 mit BOM
+- `POST /api/v1/import` — akzeptiert sowohl Bridge-Exporte der alten HTML-Version
+  (`version: 2`, deutsches camelCase, Feld-Mapping in `server/src/import.ts`) als
+  auch eigene `export.json`-Dateien (`version: 3`, direkter Pass-through)
+
 ## Status
 
 M1–M3 umgesetzt. Siehe `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter
 `fixtures/bridge-export.json` (nicht im Git, enthält echte Gesundheitsdaten,
-s. `.gitignore`) für den Import-Test (SPEC.md §11, Akzeptanzkriterium 4).
+s. `.gitignore`) — der Import wurde damit gegen echte Daten getestet
+(SPEC.md §11, Akzeptanzkriterium 4).
