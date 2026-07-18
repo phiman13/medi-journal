@@ -5,6 +5,7 @@ import type Database from "better-sqlite3";
 import { registerSession } from "./plugins/session";
 import { healthzRoutes } from "./routes/healthz";
 import { authRoutes } from "./routes/auth";
+import { syncRoutes } from "./routes/sync";
 
 export interface AppOptions {
   db: Database.Database;
@@ -32,6 +33,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
 
   await app.register(healthzRoutes);
   await app.register((instance) => authRoutes(instance, options.masterPasswordHash));
+  await app.register(syncRoutes);
 
   // app/dist existiert erst nach "npm run build --workspace app". In der
   // Entwicklung läuft das Frontend über den separaten Vite-Dev-Server (Proxy

@@ -8,6 +8,18 @@
 -- Jede Tabelle hat `deleted_at` als Tombstone-Spalte für die Last-Write-Wins-
 -- Sync-Strategie aus SPEC.md §4.2 ("Gelöschte Records als Tombstones
 -- synchronisieren").
+--
+-- `server_received_at` (bisher nur auf daily_entries, s. M2-Sync) ist der
+-- Tiebreaker aus SPEC.md §4.2 ("Client-Uhr + Server-Empfangszeit als
+-- Tiebreaker"): Er wird vom Server bei jedem Schreiben gestempelt und dient
+-- dazu, einen Client mit falsch gehender Systemuhr nicht dauerhaft gegen
+-- spätere, korrekt datierte Edits gewinnen zu lassen (s. server/src/routes/sync.ts).
+--
+-- `sync_seq` ist ein monoton steigender Zähler, der den "since"-Cursor für
+-- GET /api/v1/sync antreibt. Zwei Schreibvorgänge in derselben Millisekunde
+-- hätten sonst denselben `server_received_at`-Zeitstempel und der
+-- Cursor-Vergleich ">" würde den zweiten stillschweigend verschlucken
+-- (gefunden durch einen Test, s. server/test/sync.test.ts).
 
 CREATE TABLE IF NOT EXISTS daily_entries (
   date                  TEXT PRIMARY KEY,
@@ -37,7 +49,9 @@ CREATE TABLE IF NOT EXISTS daily_entries (
   flags                 TEXT,
   notes                 TEXT,
   updated_at            TEXT NOT NULL,
-  deleted_at            TEXT
+  deleted_at            TEXT,
+  server_received_at    TEXT NOT NULL,
+  sync_seq              INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS weekly_checks (
