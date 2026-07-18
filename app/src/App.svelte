@@ -3,6 +3,9 @@
   import { pullChanges } from "./lib/sync";
   import Login from "./components/Login.svelte";
   import DailyEntryForm from "./components/DailyEntryForm.svelte";
+  import Dashboard from "./components/Dashboard.svelte";
+
+  let view = $state<"entry" | "dashboard">("entry");
 
   $effect(() => {
     if ($authenticated) {
@@ -15,7 +18,19 @@
 
 <main>
   {#if $authenticated}
-    <DailyEntryForm />
+    <nav>
+      <button type="button" onclick={() => (view = "entry")} aria-current={view === "entry"}>
+        Eintrag
+      </button>
+      <button type="button" onclick={() => (view = "dashboard")} aria-current={view === "dashboard"}>
+        Verlauf
+      </button>
+    </nav>
+    {#if view === "entry"}
+      <DailyEntryForm />
+    {:else}
+      <Dashboard />
+    {/if}
   {:else}
     <Login />
   {/if}
