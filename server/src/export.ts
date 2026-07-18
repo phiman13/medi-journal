@@ -1,4 +1,6 @@
 import type { DailyEntryRecord } from "./db/dailyEntries";
+import type { WeeklyCheckRecord } from "./db/weeklyChecks";
+import type { Phq9CheckRecord } from "./db/phq9Checks";
 
 // SPEC.md §5.6 zeigt "entries: {...Feldnamen wie §3.1...}" im Beispiel-JSON -
 // das native Export-Schema nutzt also DB-Feldnamen (snake_case), NICHT die
@@ -23,25 +25,36 @@ export interface ExportEnvelope {
   settings: Record<string, unknown>;
 }
 
-function stripSyncFields(record: DailyEntryRecord): Record<string, unknown> {
+function stripSyncFields(record: Record<string, unknown>): Record<string, unknown> {
   const { server_received_at: _serverReceivedAt, ...rest } = record;
   return rest;
 }
 
-export function buildExportEnvelope(entries: DailyEntryRecord[], now = new Date()): ExportEnvelope {
-  const entriesMap: Record<string, Record<string, unknown>> = {};
-  for (const entry of entries) {
-    entriesMap[entry.date] = stripSyncFields(entry);
+function toMap<T extends Record<string, unknown>>(
+  records: T[],
+  keyField: string,
+): Record<string, Record<string, unknown>> {
+  const map: Record<string, Record<string, unknown>> = {};
+  for (const record of records) {
+    map[record[keyField] as string] = stripSyncFields(record);
   }
+  return map;
+}
 
+export function buildExportEnvelope(
+  entries: DailyEntryRecord[],
+  weekly: WeeklyCheckRecord[] = [],
+  phq9: Phq9CheckRecord[] = [],
+  now = new Date(),
+): ExportEnvelope {
   return {
     app: "medi-journal",
     version: EXPORT_VERSION,
     exported: now.toISOString(),
-    entries: entriesMap,
-    // weekly_checks/phq9_checks/events haben vor M4 noch keine UI, daher leer.
-    weekly: {},
-    phq9: {},
+    entries: toMap(entries, "date"),
+    weekly: toMap(weekly, "week_start"),
+    phq9: toMap(phq9, "date"),
+    // events folgt erst mit M4d (Events+Chart-Marker).
     events: [],
     settings: {},
   };

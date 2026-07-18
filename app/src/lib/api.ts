@@ -1,4 +1,6 @@
 import type { DailyEntry } from "./dailyEntry";
+import type { WeeklyCheck } from "./weeklyCheck";
+import type { Phq9Check } from "./phq9";
 
 export class UnauthenticatedError extends Error {}
 
@@ -21,35 +23,38 @@ export async function login(password: string): Promise<boolean> {
 }
 
 // Serverfelder, die nie vom Client gesendet werden (server-seitig verwaltet
-// oder rein lokales Bookkeeping, s. lib/dailyEntry.ts).
-function stripLocalFields(
-  entry: DailyEntry,
-): Omit<DailyEntry, "sync_status" | "server_received_at"> {
-  const { sync_status: _syncStatus, server_received_at: _serverReceivedAt, ...rest } = entry;
+// oder rein lokales Bookkeeping, s. lib/sync.ts).
+function stripLocalFields<T extends Record<string, unknown>>(record: T): Record<string, unknown> {
+  const { sync_status: _syncStatus, server_received_at: _serverReceivedAt, ...rest } = record;
   return rest;
 }
 
-export async function pushDailyEntry(entry: DailyEntry): Promise<DailyEntry> {
+export async function pushRecord<T extends Record<string, unknown>>(
+  table: string,
+  record: T,
+): Promise<T> {
   const response = await apiFetch("/api/v1/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ table: "daily_entries", records: [stripLocalFields(entry)] }),
+    body: JSON.stringify({ table, records: [stripLocalFields(record)] }),
   });
 
   if (!response.ok) {
-    throw new Error(`Sync-Push fehlgeschlagen: ${response.status}`);
+    throw new Error(`Sync-Push fehlgeschlagen (${table}): ${response.status}`);
   }
 
   const body = await response.json();
-  return body.tables.daily_entries[0];
+  return body.tables[table][0];
 }
 
 export interface PullResult {
   since: string;
-  records: DailyEntry[];
+  daily_entries: DailyEntry[];
+  weekly_checks: WeeklyCheck[];
+  phq9_checks: Phq9Check[];
 }
 
-export async function pullDailyEntries(since: string | undefined): Promise<PullResult> {
+export async function pullSince(since: string | undefined): Promise<PullResult> {
   const query = since ? `?since=${encodeURIComponent(since)}` : "";
   const response = await apiFetch(`/api/v1/sync${query}`);
 
@@ -58,5 +63,10 @@ export async function pullDailyEntries(since: string | undefined): Promise<PullR
   }
 
   const body = await response.json();
-  return { since: body.since, records: body.tables.daily_entries };
+  return {
+    since: body.since,
+    daily_entries: body.tables.daily_entries,
+    weekly_checks: body.tables.weekly_checks,
+    phq9_checks: body.tables.phq9_checks,
+  };
 }

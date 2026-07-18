@@ -155,13 +155,14 @@ describe("POST /api/v1/sync", () => {
   });
 
   it("lehnt eine nicht unterstützte Tabelle ab", async () => {
+    // events folgt erst mit M4d (Events+Chart-Marker), bis dahin unsupported.
     const { app, cookieHeader } = await authedApp();
 
     const response = await app.inject({
       method: "POST",
       url: "/api/v1/sync",
       headers: { cookie: cookieHeader },
-      payload: { table: "weekly_checks", records: [] },
+      payload: { table: "events", records: [] },
     });
 
     expect(response.statusCode).toBe(400);

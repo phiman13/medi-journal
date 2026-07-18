@@ -1,4 +1,5 @@
 import type Database from "better-sqlite3";
+import { nextGlobalSyncSeq } from "./syncCounter";
 
 // Reihenfolge wie SPEC.md §3.1, ohne `date` (Primärschlüssel, separat
 // behandelt) und ohne `server_received_at`/`sync_seq` (werden vom Server gesetzt).
@@ -83,17 +84,6 @@ function effectiveTimestamp(updatedAt: string, receivedAt: string): number {
   return Math.min(Date.parse(updatedAt), Date.parse(receivedAt));
 }
 
-// Monoton steigender Cursor für GET /api/v1/sync, unabhängig von
-// Zeitstempel-Auflösung (s. Kommentar in schema.sql).
-function nextSyncSeq(db: Database.Database): number {
-  const row = db
-    .prepare("SELECT COALESCE(MAX(sync_seq), 0) + 1 AS next FROM daily_entries")
-    .get() as {
-    next: number;
-  };
-  return row.next;
-}
-
 export function upsertDailyEntry(
   db: Database.Database,
   incoming: DailyEntryRecord,
@@ -108,7 +98,7 @@ export function upsertDailyEntry(
       incoming.date,
       ...DAILY_ENTRY_COLUMNS.map((column) => toStorage(column, incoming[column])),
       now,
-      nextSyncSeq(db),
+      nextGlobalSyncSeq(db),
     ];
     db.prepare(`INSERT INTO daily_entries (${columns.join(", ")}) VALUES (${placeholders})`).run(
       ...values,
@@ -127,7 +117,7 @@ export function upsertDailyEntry(
     const values = [
       ...DAILY_ENTRY_COLUMNS.map((column) => toStorage(column, incoming[column])),
       now,
-      nextSyncSeq(db),
+      nextGlobalSyncSeq(db),
       incoming.date,
     ];
     db.prepare(
@@ -148,13 +138,4 @@ export function listDailyEntriesSince(
     .all(Number.isFinite(sinceSeq) ? sinceSeq : 0);
 
   return (rows as Record<string, unknown>[]).map(rowToRecord);
-}
-
-export function currentSyncSeq(db: Database.Database): number {
-  const row = db
-    .prepare("SELECT COALESCE(MAX(sync_seq), 0) AS current FROM daily_entries")
-    .get() as {
-    current: number;
-  };
-  return row.current;
 }

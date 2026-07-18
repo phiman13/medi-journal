@@ -1,54 +1,84 @@
 import type { FastifyInstance } from "fastify";
+import { upsertDailyEntry, listDailyEntriesSince, type DailyEntryRecord } from "../db/dailyEntries";
 import {
-  upsertDailyEntry,
-  listDailyEntriesSince,
-  currentSyncSeq,
-  type DailyEntryRecord,
-} from "../db/dailyEntries";
+  upsertWeeklyCheck,
+  listWeeklyChecksSince,
+  InvalidScaleError as InvalidWeeklyScaleError,
+} from "../db/weeklyChecks";
+import {
+  upsertPhq9Check,
+  listPhq9ChecksSince,
+  InvalidScaleError as InvalidPhq9ScaleError,
+} from "../db/phq9Checks";
+import { currentGlobalSyncSeq } from "../db/syncCounter";
+import type Database from "better-sqlite3";
 
 interface SyncPostBody {
   table: string;
-  records: DailyEntryRecord[];
+  records: Array<Record<string, unknown>>;
 }
 
 interface SyncGetQuery {
   since?: string;
 }
 
-// M2 synct nur `daily_entries` (einzige Tabelle mit UI in diesem Meilenstein,
-// s. docs/superpowers/specs/2026-07-17-m2-design.md). Das Envelope-Format
-// ({table, records[]}) ist bewusst schon generisch für SPEC.md §4.2 gehalten,
-// damit M4 nur weitere Tabellennamen ergänzt statt den Mechanismus neu zu bauen.
-const SUPPORTED_TABLES = new Set(["daily_entries"]);
+// events (SPEC.md §3.4) folgt erst mit M4d (Events+Chart-Marker), s.
+// docs/superpowers/specs/ - noch keine UI, die Daten dafür erzeugt.
+const TABLE_KEY_FIELD: Record<string, string> = {
+  daily_entries: "date",
+  weekly_checks: "week_start",
+  phq9_checks: "date",
+};
+
+function upsert(
+  db: Database.Database,
+  table: string,
+  record: Record<string, unknown>,
+): Record<string, unknown> {
+  if (table === "daily_entries") return upsertDailyEntry(db, record as DailyEntryRecord);
+  if (table === "weekly_checks") return upsertWeeklyCheck(db, record as { week_start: string });
+  return upsertPhq9Check(db, record as { date: string });
+}
 
 export async function syncRoutes(app: FastifyInstance): Promise<void> {
   app.get<{ Querystring: SyncGetQuery }>("/api/v1/sync", async (request, reply) => {
     const since = request.query.since;
-    const records = listDailyEntriesSince(app.db, since);
 
-    // `since` ist ein opaker, monoton steigender Cursor (kein Zeitstempel) -
-    // s. Kommentar in server/src/db/schema.sql zum sync_seq-Feld.
+    // `since` ist ein opaker, monoton steigender, ÜBER ALLE TABELLEN geteilter
+    // Cursor (kein Zeitstempel) - s. Kommentar in server/src/db/schema.sql
+    // (sync_counter) dazu, warum ein Zähler pro Tabelle nicht funktioniert.
     return reply.send({
-      since: String(currentSyncSeq(app.db)),
-      tables: { daily_entries: records },
+      since: String(currentGlobalSyncSeq(app.db)),
+      tables: {
+        daily_entries: listDailyEntriesSince(app.db, since),
+        weekly_checks: listWeeklyChecksSince(app.db, since),
+        phq9_checks: listPhq9ChecksSince(app.db, since),
+      },
     });
   });
 
   app.post<{ Body: SyncPostBody }>("/api/v1/sync", async (request, reply) => {
     const { table, records } = request.body ?? { table: "", records: [] };
+    const keyField = TABLE_KEY_FIELD[table];
 
-    if (!SUPPORTED_TABLES.has(table)) {
+    if (!keyField) {
       return reply.code(400).send({ error: "unsupported_table", table });
     }
 
     for (const record of records) {
-      if (!record.date || !record.updated_at) {
+      if (!record[keyField] || !record.updated_at) {
         return reply.code(400).send({ error: "invalid_record", record });
       }
     }
 
-    const canonical = records.map((record) => upsertDailyEntry(app.db, record));
-
-    return reply.send({ tables: { daily_entries: canonical } });
+    try {
+      const canonical = records.map((record) => upsert(app.db, table, record));
+      return reply.send({ tables: { [table]: canonical } });
+    } catch (error) {
+      if (error instanceof InvalidWeeklyScaleError || error instanceof InvalidPhq9ScaleError) {
+        return reply.code(400).send({ error: "invalid_scale", message: error.message });
+      }
+      throw error;
+    }
   });
 }

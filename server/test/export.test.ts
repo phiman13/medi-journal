@@ -39,7 +39,7 @@ function entry(overrides: Partial<DailyEntryRecord> = {}): DailyEntryRecord {
 
 describe("buildExportEnvelope", () => {
   it("nutzt version 3 (natives Schema) und Feldnamen wie §3.1", () => {
-    const envelope = buildExportEnvelope([entry()], new Date("2026-07-18T21:00:00.000Z"));
+    const envelope = buildExportEnvelope([entry()], [], [], new Date("2026-07-18T21:00:00.000Z"));
 
     expect(envelope.app).toBe("medi-journal");
     expect(envelope.version).toBe(EXPORT_VERSION);
@@ -53,10 +53,28 @@ describe("buildExportEnvelope", () => {
     expect(envelope.entries["2026-07-18"]).not.toHaveProperty("server_received_at");
   });
 
-  it("weekly/phq9/events sind vor M4 leer, aber vorhanden", () => {
-    const envelope = buildExportEnvelope([]);
-    expect(envelope.weekly).toEqual({});
-    expect(envelope.phq9).toEqual({});
+  it("nimmt weekly/phq9-Records als Map auf, events ist vor M4d leer", () => {
+    const envelope = buildExportEnvelope(
+      [],
+      [
+        {
+          week_start: "2026-07-13",
+          asrs: [1, 1, 1, 1, 1, 1],
+          asrs_score: 6,
+          updated_at: "2026-07-13T20:00:00.000Z",
+        },
+      ],
+      [
+        {
+          date: "2026-07-14",
+          answers: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+          score: 0,
+          updated_at: "2026-07-14T20:00:00.000Z",
+        },
+      ],
+    );
+    expect(envelope.weekly["2026-07-13"].asrs_score).toBe(6);
+    expect(envelope.phq9["2026-07-14"].score).toBe(0);
     expect(envelope.events).toEqual([]);
   });
 });

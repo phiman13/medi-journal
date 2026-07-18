@@ -9,17 +9,26 @@
 -- Sync-Strategie aus SPEC.md §4.2 ("Gelöschte Records als Tombstones
 -- synchronisieren").
 --
--- `server_received_at` (bisher nur auf daily_entries, s. M2-Sync) ist der
--- Tiebreaker aus SPEC.md §4.2 ("Client-Uhr + Server-Empfangszeit als
--- Tiebreaker"): Er wird vom Server bei jedem Schreiben gestempelt und dient
--- dazu, einen Client mit falsch gehender Systemuhr nicht dauerhaft gegen
--- spätere, korrekt datierte Edits gewinnen zu lassen (s. server/src/routes/sync.ts).
+-- `server_received_at` ist der Tiebreaker aus SPEC.md §4.2 ("Client-Uhr +
+-- Server-Empfangszeit als Tiebreaker"): Er wird vom Server bei jedem
+-- Schreiben gestempelt und dient dazu, einen Client mit falsch gehender
+-- Systemuhr nicht dauerhaft gegen spätere, korrekt datierte Edits gewinnen
+-- zu lassen (s. server/src/routes/sync.ts).
 --
--- `sync_seq` ist ein monoton steigender Zähler, der den "since"-Cursor für
--- GET /api/v1/sync antreibt. Zwei Schreibvorgänge in derselben Millisekunde
--- hätten sonst denselben `server_received_at`-Zeitstempel und der
--- Cursor-Vergleich ">" würde den zweiten stillschweigend verschlucken
--- (gefunden durch einen Test, s. server/test/sync.test.ts).
+-- `sync_seq` ist ein GLOBAL über alle vier Tabellen geteilter, monoton
+-- steigender Zähler (s. sync_counter unten), der den "since"-Cursor für
+-- GET /api/v1/sync antreibt. Ein Zähler PRO Tabelle würde einen einzigen
+-- skalaren "since"-Cursor unmöglich korrekt machen: Bei unabhängigen
+-- Zählern könnte z. B. daily_entries bei seq 50 stehen und weekly_checks bei
+-- seq 3 - since=50 hätte dann sämtliche weekly_checks-Änderungen beim
+-- nächsten Pull verschluckt (im adversarial Review vor der Umsetzung
+-- gefunden, s. docs/superpowers/specs/).
+
+CREATE TABLE IF NOT EXISTS sync_counter (
+  id                    INTEGER PRIMARY KEY CHECK (id = 1),
+  value                 INTEGER NOT NULL
+);
+INSERT OR IGNORE INTO sync_counter (id, value) VALUES (1, 0);
 
 CREATE TABLE IF NOT EXISTS daily_entries (
   date                  TEXT PRIMARY KEY,
@@ -66,7 +75,9 @@ CREATE TABLE IF NOT EXISTS weekly_checks (
   week_rating           TEXT,
   notes                 TEXT,
   updated_at            TEXT NOT NULL,
-  deleted_at            TEXT
+  deleted_at            TEXT,
+  server_received_at    TEXT NOT NULL,
+  sync_seq              INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS phq9_checks (
@@ -74,7 +85,9 @@ CREATE TABLE IF NOT EXISTS phq9_checks (
   answers               TEXT NOT NULL,
   score                 INTEGER NOT NULL,
   updated_at            TEXT NOT NULL,
-  deleted_at            TEXT
+  deleted_at            TEXT,
+  server_received_at    TEXT NOT NULL,
+  sync_seq              INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS events (
@@ -84,7 +97,9 @@ CREATE TABLE IF NOT EXISTS events (
   title                 TEXT NOT NULL,
   details               TEXT,
   updated_at            TEXT NOT NULL,
-  deleted_at            TEXT
+  deleted_at            TEXT,
+  server_received_at    TEXT NOT NULL,
+  sync_seq              INTEGER NOT NULL
 );
 
 -- Single-Row-Settings (ein Nutzer, s. SPEC.md §3.5): `data` enthält Medikation

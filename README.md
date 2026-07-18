@@ -73,7 +73,8 @@ da rclone-Zugangsdaten nicht ins App-Image gehören.
 
 ## Status
 
-M1–M3 umgesetzt. Siehe `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
+M1–M4 (ohne Events+Chart-Marker, folgt als M4d) umgesetzt. Siehe
+`docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter
 `fixtures/bridge-export.json` (nicht im Git, enthält echte Gesundheitsdaten,

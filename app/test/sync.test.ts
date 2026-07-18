@@ -1,15 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { db } from "../src/lib/db";
 import { emptyEntry } from "../src/lib/dailyEntry";
+import { emptyWeeklyCheck } from "../src/lib/weeklyCheck";
+import { emptyPhq9Check } from "../src/lib/phq9";
 import * as api from "../src/lib/api";
 
 vi.mock("../src/lib/api", async () => {
   const actual = await vi.importActual<typeof import("../src/lib/api")>("../src/lib/api");
-  return { ...actual, pushDailyEntry: vi.fn(), pullDailyEntries: vi.fn() };
+  return { ...actual, pushRecord: vi.fn(), pullSince: vi.fn() };
 });
 
 beforeEach(async () => {
   await db.daily_entries.clear();
+  await db.weekly_checks.clear();
+  await db.phq9_checks.clear();
   await db._meta.clear();
 });
 
@@ -21,10 +25,7 @@ describe("saveEntry", () => {
   it("persistiert lokal sofort und markiert als synced nach erfolgreichem Push", async () => {
     const { saveEntry } = await import("../src/lib/sync");
     const entry = emptyEntry("2026-07-17");
-    vi.mocked(api.pushDailyEntry).mockResolvedValue({
-      ...entry,
-      server_received_at: "srv-1",
-    } as never);
+    vi.mocked(api.pushRecord).mockResolvedValue({ ...entry, server_received_at: "srv-1" } as never);
 
     await saveEntry(entry);
 
@@ -35,7 +36,7 @@ describe("saveEntry", () => {
   it("bleibt pending, wenn der Push fehlschlägt (offline)", async () => {
     const { saveEntry } = await import("../src/lib/sync");
     const entry = emptyEntry("2026-07-17");
-    vi.mocked(api.pushDailyEntry).mockRejectedValue(new Error("offline"));
+    vi.mocked(api.pushRecord).mockRejectedValue(new Error("offline"));
 
     await saveEntry(entry);
 
@@ -45,7 +46,7 @@ describe("saveEntry", () => {
 
   it("speichert auch bei verschachtelten Proxy-Feldern (wie Sveltes $state) ohne DataCloneError", async () => {
     // Regression: IndexedDB kann keine Proxies klonen. Svelte 5 kapselt
-    // $state-Werte TIEF in Proxies - die Objekt-Spread in saveEntry()
+    // $state-Werte TIEF in Proxies - die Objekt-Spread in saveRecord()
     // entproxied nur die oberste Ebene, ein verschachteltes Feld wie
     // `side_effects` bleibt sonst ein Proxy und lässt den lokalen
     // Schreibvorgang unbemerkt scheitern (im Formular gefunden, nicht durch
@@ -53,7 +54,7 @@ describe("saveEntry", () => {
     const { saveEntry } = await import("../src/lib/sync");
     const entry = emptyEntry("2026-07-17");
     entry.side_effects = new Proxy(["kopfschmerzen"], {});
-    vi.mocked(api.pushDailyEntry).mockRejectedValue(new Error("offline"));
+    vi.mocked(api.pushRecord).mockRejectedValue(new Error("offline"));
 
     await expect(saveEntry(entry)).resolves.toBeUndefined();
 
@@ -63,20 +64,51 @@ describe("saveEntry", () => {
   });
 });
 
+describe("saveWeeklyCheck", () => {
+  it("persistiert lokal und markiert als synced nach erfolgreichem Push (generalisierter Sync-Pfad)", async () => {
+    const { saveWeeklyCheck } = await import("../src/lib/sync");
+    const check = emptyWeeklyCheck("2026-07-13");
+    vi.mocked(api.pushRecord).mockResolvedValue({ ...check, server_received_at: "srv-1" } as never);
+
+    await saveWeeklyCheck(check);
+
+    const stored = await db.weekly_checks.get("2026-07-13");
+    expect(stored?.sync_status).toBe("synced");
+  });
+});
+
+describe("savePhq9Check", () => {
+  it("persistiert lokal und markiert als synced nach erfolgreichem Push (generalisierter Sync-Pfad)", async () => {
+    const { savePhq9Check } = await import("../src/lib/sync");
+    const check = emptyPhq9Check("2026-07-14");
+    vi.mocked(api.pushRecord).mockResolvedValue({ ...check, server_received_at: "srv-1" } as never);
+
+    await savePhq9Check(check);
+
+    const stored = await db.phq9_checks.get("2026-07-14");
+    expect(stored?.sync_status).toBe("synced");
+  });
+});
+
 describe("pushPending", () => {
-  it("versucht alle pending Einträge erneut zu pushen", async () => {
+  it("versucht alle pending Einträge aller drei Tabellen erneut zu pushen", async () => {
     const { pushPending } = await import("../src/lib/sync");
     const entry = { ...emptyEntry("2026-07-17"), sync_status: "pending" as const };
+    const check = { ...emptyWeeklyCheck("2026-07-13"), sync_status: "pending" as const };
+    const phq9 = { ...emptyPhq9Check("2026-07-14"), sync_status: "pending" as const };
     await db.daily_entries.put(entry);
-    vi.mocked(api.pushDailyEntry).mockResolvedValue({
-      ...entry,
+    await db.weekly_checks.put(check);
+    await db.phq9_checks.put(phq9);
+    vi.mocked(api.pushRecord).mockImplementation(async (_table, record) => ({
+      ...record,
       server_received_at: "srv-1",
-    } as never);
+    }));
 
     await pushPending();
 
-    const stored = await db.daily_entries.get("2026-07-17");
-    expect(stored?.sync_status).toBe("synced");
+    expect((await db.daily_entries.get("2026-07-17"))?.sync_status).toBe("synced");
+    expect((await db.weekly_checks.get("2026-07-13"))?.sync_status).toBe("synced");
+    expect((await db.phq9_checks.get("2026-07-14"))?.sync_status).toBe("synced");
   });
 });
 
@@ -116,5 +148,23 @@ describe("applyPulledEntries", () => {
     const stored = await db.daily_entries.get("2026-07-17");
     expect(stored?.mood).toBe(3);
     expect(stored?.sync_status).toBe("pending");
+  });
+});
+
+describe("pullChanges", () => {
+  it("wendet Records aus BEIDEN Tabellen aus einer Antwort an (generalisierter Pull)", async () => {
+    const { pullChanges } = await import("../src/lib/sync");
+    vi.mocked(api.pullSince).mockResolvedValue({
+      since: "5",
+      daily_entries: [{ ...emptyEntry("2026-07-17"), mood: 8 }],
+      weekly_checks: [{ ...emptyWeeklyCheck("2026-07-13"), asrs_score: 7 }],
+      phq9_checks: [{ ...emptyPhq9Check("2026-07-14"), score: 5 }],
+    });
+
+    await pullChanges();
+
+    expect((await db.daily_entries.get("2026-07-17"))?.mood).toBe(8);
+    expect((await db.weekly_checks.get("2026-07-13"))?.asrs_score).toBe(7);
+    expect((await db.phq9_checks.get("2026-07-14"))?.score).toBe(5);
   });
 });
