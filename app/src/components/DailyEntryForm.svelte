@@ -2,7 +2,14 @@
   import { onMount } from "svelte";
   import { db } from "../lib/db";
   import { saveEntry } from "../lib/sync";
-  import { emptyEntry, todayInBerlin, SIDE_EFFECTS, FLAGS, type DailyEntry } from "../lib/dailyEntry";
+  import {
+    emptyEntry,
+    todayInBerlin,
+    addDays,
+    SIDE_EFFECTS,
+    FLAGS,
+    type DailyEntry,
+  } from "../lib/dailyEntry";
 
   const today = todayInBerlin();
 
@@ -50,9 +57,7 @@
   }
 
   function shiftDay(deltaDays: number): void {
-    const shifted = new Date(`${date}T00:00:00`);
-    shifted.setDate(shifted.getDate() + deltaDays);
-    goToDate(shifted.toISOString().slice(0, 10));
+    goToDate(addDays(date, deltaDays));
   }
 
   async function handleSave(event: SubmitEvent): Promise<void> {

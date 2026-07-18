@@ -90,3 +90,12 @@ export function todayInBerlin(): string {
   // lokale Zeitzone des Geräts (die meist gleich ist, aber nicht garantiert).
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Berlin" }).format(new Date());
 }
+
+// Reine Kalenderarithmetik in UTC, ohne über die lokale Zeitzone zu gehen:
+// `new Date(dateString + "T00:00:00")` + toISOString() verliert bei
+// positivem UTC-Offset (z. B. Europe/Berlin) systematisch einen Tag, weil
+// lokale Mitternacht vor der UTC-Mitternacht desselben Tages liegt.
+export function addDays(dateStr: string, deltaDays: number): string {
+  const [year, month, day] = dateStr.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day + deltaDays)).toISOString().slice(0, 10);
+}
