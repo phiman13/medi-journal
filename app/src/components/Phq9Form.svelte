@@ -4,6 +4,14 @@
   import { savePhq9Check } from "../lib/sync";
   import { emptyPhq9Check, PHQ9_QUESTIONS, PHQ9_ITEM_9_INDEX, phq9Severity, type Phq9Check } from "../lib/phq9";
   import { todayInBerlin } from "../lib/dailyEntry";
+  import Antwortreihe from "./Antwortreihe.svelte";
+
+  const PHQ9_OPTIONEN = [
+    { value: 0, label: "überhaupt nicht" },
+    { value: 1, label: "an einzelnen Tagen" },
+    { value: 2, label: "an mehr als der Hälfte der Tage" },
+    { value: 3, label: "beinahe jeden Tag" },
+  ];
 
   const today = todayInBerlin();
 
@@ -58,42 +66,34 @@
 </script>
 
 <form onsubmit={handleSave}>
-  <header>
+  <header class="datum-kopf">
     <input type="date" bind:value={date} max={today} onchange={() => goToDate(date)} />
   </header>
 
-  <fieldset>
-    <legend>PHQ-9 (letzte 2 Wochen)</legend>
+  <div class="karte">
+    <h2>PHQ-9 (letzte 2 Wochen)</h2>
     {#each PHQ9_QUESTIONS as question, index (question)}
-      <div>
-        <label for={`phq9-${index}`}>{question}</label>
-        <select id={`phq9-${index}`} bind:value={check.answers[index]}>
-          <option value={0}>überhaupt nicht</option>
-          <option value={1}>an einzelnen Tagen</option>
-          <option value={2}>an mehr als der Hälfte der Tage</option>
-          <option value={3}>beinahe jeden Tag</option>
-        </select>
-      </div>
+      <Antwortreihe frage={question} name={`phq9-${index}`} optionen={PHQ9_OPTIONEN} bind:value={check.answers[index]} />
     {/each}
-  </fieldset>
+  </div>
 
   {#if showCrisisHint}
-    <p role="status">
+    <p class="warnhinweis" role="status">
       Du hast bei Frage 9 eine Belastung angegeben. Falls du gerade in einer Krise steckst: Telefonseelsorge
       0800 111 0 111 oder 116 123 (kostenlos, rund um die Uhr). Sprich das auch bei deiner nächsten
       ärztlichen Vorstellung an.
     </p>
   {/if}
 
-  <p role="status">
-    PHQ-9 {score} ({severity})
+  <p class="status-zeile" role="status">
+    PHQ-9 <span class="zahl">{score}</span> ({severity})
     {#if previousScore !== null}
-      → zuletzt {previousScore}
+      → zuletzt <span class="zahl">{previousScore}</span>
     {/if}
   </p>
 
-  <button type="submit" disabled={saving}>Speichern</button>
-  <p role="status">
+  <button type="submit" class="knopf" disabled={saving}>Speichern</button>
+  <p class="status-zeile" role="status">
     {#if savedStatus === "synced"}
       lokal gespeichert · synchronisiert ✓
     {:else if savedStatus === "local"}
@@ -101,3 +101,16 @@
     {/if}
   </p>
 </form>
+
+<style>
+  .datum-kopf {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 1.1rem;
+  }
+  .datum-kopf input[type="date"] {
+    width: auto;
+    font-family: var(--mono);
+    text-align: center;
+  }
+</style>

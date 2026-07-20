@@ -28,8 +28,9 @@ export default defineConfig({
         description: "Privates Medikations-Tagebuch",
         start_url: "/",
         display: "standalone",
-        background_color: "#0d1117",
-        theme_color: "#0d7377",
+        // M6-Redesign: "papier" (dunkel) aus dem Token-System, s. app/src/app.css
+        background_color: "#1a1512",
+        theme_color: "#1a1512",
         icons: [
           { src: "/icon-192.png", sizes: "192x192", type: "image/png" },
           { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
@@ -37,7 +38,7 @@ export default defineConfig({
         ],
       },
       injectManifest: {
-        globPatterns: ["**/*.{js,css,html,svg,png}"],
+        globPatterns: ["**/*.{js,css,html,svg,png,woff2}"],
       },
     }),
   ],

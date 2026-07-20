@@ -1,9 +1,353 @@
+/* Design-System "Abendtagebuch" (M6-Redesign) - Herleitung und Freigabe s.
+   docs/superpowers/specs/. Token-Namen an die App-Domäne angelehnt statt
+   generisch "primary/secondary" (SPEC.md-Sprache: Ruhe, Dosis). */
+
+@font-face {
+  font-family: "Young Serif";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/young-serif-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-400.woff2") format("woff2");
+}
+
+@font-face {
+  font-family: "IBM Plex Mono";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/fonts/ibm-plex-mono-600.woff2") format("woff2");
+}
+
 :root {
   color-scheme: light dark;
-  font-family: system-ui, sans-serif;
+
+  --papier: #f7f2ea;
+  --papier-hoch: #fffdf9;
+  --papier-linie: #e7ddc9;
+  --tinte: #2a221c;
+  /* ruhe/dosis/tinte-matt geringfügig dunkler als der erste Entwurf (M6-
+     Review, ui-ux-pro-max): #5f7d4f/#a8672f/#7a6f63 lagen auf --papier bei
+     nur 4.06-4.40:1 - unter der WCAG-AA-Schwelle 4.5:1 für Fließtext. */
+  --tinte-matt: #786d62;
+  --ruhe: #5b774b;
+  --ruhe-fläche: #5b774b22;
+  --dosis: #9d602c;
+  --dosis-fläche: #9d602c1e;
+  --achtung: #9c3f2e;
+  --achtung-fläche: #9c3f2e14;
+  --schatten: 0 1px 2px rgba(42, 34, 28, 0.06), 0 8px 24px rgba(42, 34, 28, 0.08);
+
+  /* Diagramm-Serien: eigene, gedämpfte 6-Farben-Reihe statt der Achtung/
+     Ruhe/Dosis-Tokens - diese sind semantisch belegt (Warnung/Medikation),
+     eine neutrale Verlaufslinie (z. B. Tagesfunktion) soll das nicht falsch
+     konnotieren. */
+  --serie-1: #5f7d4f;
+  --serie-2: #a8672f;
+  --serie-3: #a15c68;
+  --serie-4: #4c7a7d;
+  --serie-5: #7c5f96;
+  --serie-6: #8a7f4a;
+
+  --serif: "Young Serif", "Iowan Old Style", Palatino, Georgia, serif;
+  --sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+
+  --rand: 14px;
+  --rand-groß: 20px;
+
+  /* Kräftige Ease-Out-Kurve statt der schwachen CSS-Standardkurve für
+     Press-Feedback (M6-Review, emil-design-eng). */
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --papier: #1a1512;
+    --papier-hoch: #241d18;
+    --papier-linie: #382f27;
+    --tinte: #f2e9de;
+    --tinte-matt: #a89c8f;
+    --ruhe: #8ca37b;
+    --ruhe-fläche: #8ca37b26;
+    --dosis: #c98a4b;
+    --dosis-fläche: #c98a4b22;
+    --achtung: #d97f68;
+    --achtung-fläche: #d97f6820;
+    --schatten: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.35);
+
+    --serie-1: #8ca37b;
+    --serie-2: #c98a4b;
+    --serie-3: #c4838d;
+    --serie-4: #79a5a8;
+    --serie-5: #a68bc0;
+    --serie-6: #b0a56f;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
 }
 
 body {
+  background: var(--papier);
+  color: var(--tinte);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 400;
+  letter-spacing: 0.01em;
   margin: 0;
-  padding: 2rem;
+  text-wrap: balance;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+a {
+  color: var(--ruhe);
+}
+
+/* Sichtbarer Fokusring überall - SPEC.md §6 ("alles mit Tastatur bedienbar") */
+:focus-visible {
+  outline: 2px solid var(--ruhe);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--tinte-matt);
+}
+
+.zahl {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Nur für Screenreader sichtbar (WCAG-Heading-Hierarchie ohne visuelle
+   Dopplung, s. App.svelte h1). Standard-Clip-Pattern, kein display:none
+   (das würde den Text auch für Screenreader entfernen). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Notizbuch-Seite: schmale, zentrierte Spalte für alle Screens */
+.seite {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 1.3rem 1.1rem 1rem;
+}
+
+.karte {
+  background: var(--papier-hoch);
+  border: 1px solid var(--papier-linie);
+  border-radius: var(--rand-groß);
+  box-shadow: var(--schatten);
+  padding: 1.15rem 1.2rem 1.3rem;
+  margin: 0 0 1rem;
+}
+.karte > legend,
+.karte > h2 {
+  font-size: 1rem;
+  padding: 0;
+  margin: 0 0 0.9rem;
+}
+
+.feld-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+.feld-liste label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.85rem;
+  color: var(--tinte-matt);
+}
+
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="time"],
+input[type="password"],
+select,
+textarea {
+  background: var(--papier);
+  border: 1px solid var(--papier-linie);
+  border-radius: 10px;
+  padding: 0.55rem 0.7rem;
+  color: var(--tinte);
+  width: 100%;
+}
+textarea {
+  min-height: 4.5rem;
+  resize: vertical;
+  font-family: var(--sans);
+}
+
+/* Checkbox als eigenes Häkchen-Kästchen statt Browser-Default */
+input[type="checkbox"] {
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;
+  border-radius: 6px;
+  border: 1.5px solid var(--tinte-matt);
+  display: grid;
+  place-content: center;
+  cursor: pointer;
+  margin: 0;
+}
+input[type="checkbox"]:checked {
+  border-color: var(--ruhe);
+  background: var(--ruhe);
+}
+input[type="checkbox"]:checked::after {
+  content: "";
+  width: 10px;
+  height: 6px;
+  border-left: 2px solid var(--papier-hoch);
+  border-bottom: 2px solid var(--papier-hoch);
+  transform: rotate(-45deg) translate(1px, -1px);
+}
+
+/* min-height 44px (M6-Review, ui-ux-pro-max): das sichtbare Häkchen-Kästchen
+   ist nur 22px groß, die klickbare <label>-Zeile muss trotzdem SPEC.md §6
+   (große Touch-Targets) erfüllen - nicht nur das Kästchen selbst. */
+.checkbox-zeile {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  font-size: 0.9rem;
+  min-height: 44px;
+  cursor: pointer;
+}
+
+.knopf {
+  all: unset;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  font-weight: 600;
+  padding: 0.7rem 1.3rem;
+  border-radius: 999px;
+  background: var(--ruhe);
+  color: var(--papier-hoch);
+  cursor: pointer;
+  min-height: 44px;
+  /* Press-Feedback (M6-Review, emil-design-eng): Buttons müssen sich bedient
+     anfühlen - respektiert die globale prefers-reduced-motion-Regel oben. */
+  transition: transform 160ms var(--ease-out);
+}
+.knopf:active:not(:disabled) {
+  transform: scale(0.97);
+}
+.knopf:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.knopf.leise {
+  background: var(--papier-hoch);
+  color: var(--tinte);
+  border: 1px solid var(--papier-linie);
+}
+
+.status-zeile {
+  font-family: var(--mono);
+  font-size: 0.76rem;
+  color: var(--tinte-matt);
+  margin: 0.6rem 0 0;
+}
+
+.hinweis {
+  font-size: 0.85rem;
+  background: var(--dosis-fläche);
+  /* Text in --tinte statt --dosis (M6-Review): Akzentfarbe auf ihrer eigenen
+     getönten Fläche unterschreitet 4.5:1 - Rahmen/Fläche bleiben farbig als
+     Statusindikator, aber die lesbare Schrift bleibt hochkontrastiert. */
+  color: var(--tinte);
+  border: 1px solid var(--dosis);
+  border-radius: 12px;
+  padding: 0.7rem 0.9rem;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+.hinweis .knopf {
+  background: var(--papier-hoch);
+  color: var(--tinte);
+  padding: 0.45rem 0.9rem;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.warnhinweis {
+  font-size: 0.85rem;
+  background: var(--achtung-fläche);
+  border: 1px solid var(--achtung);
+  color: var(--tinte);
+  border-radius: 12px;
+  padding: 0.8rem 0.95rem;
+  margin: 0 0 1rem;
+  line-height: 1.55;
+}
+
+.fehler {
+  font-size: 0.85rem;
+  color: var(--achtung);
+  margin: 0.5rem 0 0;
 }

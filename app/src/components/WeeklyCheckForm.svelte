@@ -5,6 +5,15 @@
   import { emptyWeeklyCheck, ASRS_QUESTIONS, mondayOfWeek, type WeeklyCheck } from "../lib/weeklyCheck";
   import { addDays, todayInBerlin } from "../lib/dailyEntry";
   import { mostRecentlyCompletedWeekStart } from "../lib/reminders";
+  import Antwortreihe from "./Antwortreihe.svelte";
+
+  const ASRS_OPTIONEN = [
+    { value: 0, label: "nie" },
+    { value: 1, label: "selten" },
+    { value: 2, label: "manchmal" },
+    { value: 3, label: "oft" },
+    { value: 4, label: "sehr oft" },
+  ];
 
   const today = todayInBerlin();
   const dueWeekStart = mostRecentlyCompletedWeekStart(today);
@@ -57,63 +66,61 @@
 </script>
 
 <form onsubmit={handleSave}>
-  <header>
-    <button type="button" onclick={() => shiftWeek(-1)} aria-label="Vorherige Woche">←</button>
-    <span>Woche ab {weekStart}</span>
-    <button type="button" onclick={() => shiftWeek(1)} disabled={weekStart >= dueWeekStart} aria-label="Nächste Woche">
+  <header class="datum-kopf">
+    <button type="button" class="knopf leise" onclick={() => shiftWeek(-1)} aria-label="Vorherige Woche">←</button>
+    <span class="zahl">Woche ab {weekStart}</span>
+    <button
+      type="button"
+      class="knopf leise"
+      onclick={() => shiftWeek(1)}
+      disabled={weekStart >= dueWeekStart}
+      aria-label="Nächste Woche"
+    >
       →
     </button>
   </header>
 
-  <fieldset>
-    <legend>ASRS-6 (letzte 7 Tage)</legend>
+  <div class="karte">
+    <h2>ASRS-6 (letzte 7 Tage)</h2>
     {#each ASRS_QUESTIONS as question, index (question)}
-      <div>
-        <label for={`asrs-${index}`}>{question}</label>
-        <select id={`asrs-${index}`} bind:value={check.asrs[index]}>
-          <option value={0}>nie</option>
-          <option value={1}>selten</option>
-          <option value={2}>manchmal</option>
-          <option value={3}>oft</option>
-          <option value={4}>sehr oft</option>
-        </select>
-      </div>
+      <Antwortreihe frage={question} name={`asrs-${index}`} optionen={ASRS_OPTIONEN} bind:value={check.asrs[index]} />
     {/each}
-  </fieldset>
+    <p class="status-zeile">
+      ASRS <span class="zahl">{check.asrs.reduce((sum, value) => sum + value, 0)}</span>
+      {#if previousScore !== null}
+        → vor einer Woche <span class="zahl">{previousScore}</span>
+      {/if}
+    </p>
+  </div>
 
-  <p role="status">
-    ASRS {check.asrs.reduce((sum, value) => sum + value, 0)}
-    {#if previousScore !== null}
-      → vor einer Woche {previousScore}
-    {/if}
-  </p>
-
-  <fieldset>
+  <fieldset class="karte">
     <legend>Wochenmessung</legend>
-    <label>
-      Gewicht (kg)
-      <input type="number" step="0.1" bind:value={check.weight_kg} />
-    </label>
-    <label>
-      Blutdruck systolisch
-      <input type="number" bind:value={check.bp_sys} />
-    </label>
-    <label>
-      Blutdruck diastolisch
-      <input type="number" bind:value={check.bp_dia} />
-    </label>
-    <label>
-      Puls
-      <input type="number" bind:value={check.hr} />
-    </label>
-    <label>
-      Geschätzte Wirkdauer (Stunden)
-      <input type="number" step="0.5" bind:value={check.effect_duration_h} />
-    </label>
+    <div class="feld-liste">
+      <label>
+        Gewicht (kg)
+        <input type="number" step="0.1" bind:value={check.weight_kg} />
+      </label>
+      <label>
+        Blutdruck systolisch
+        <input type="number" bind:value={check.bp_sys} />
+      </label>
+      <label>
+        Blutdruck diastolisch
+        <input type="number" bind:value={check.bp_dia} />
+      </label>
+      <label>
+        Puls
+        <input type="number" bind:value={check.hr} />
+      </label>
+      <label>
+        Geschätzte Wirkdauer (Stunden)
+        <input type="number" step="0.5" bind:value={check.effect_duration_h} />
+      </label>
+    </div>
   </fieldset>
 
-  <label>
-    Gesamteindruck gegenüber Vorwoche
+  <fieldset class="karte">
+    <legend>Gesamteindruck gegenüber Vorwoche</legend>
     <select bind:value={check.week_rating}>
       <option value={null}></option>
       <option value="deutlich_besser">deutlich besser</option>
@@ -121,15 +128,15 @@
       <option value="gleich">gleich</option>
       <option value="schlechter">schlechter</option>
     </select>
-  </label>
+  </fieldset>
 
-  <label>
-    Notizen
-    <textarea bind:value={check.notes}></textarea>
-  </label>
+  <fieldset class="karte">
+    <legend>Notizen</legend>
+    <textarea bind:value={check.notes} aria-label="Notizen"></textarea>
+  </fieldset>
 
-  <button type="submit" disabled={saving}>Speichern</button>
-  <p role="status">
+  <button type="submit" class="knopf" disabled={saving}>Speichern</button>
+  <p class="status-zeile" role="status">
     {#if savedStatus === "synced"}
       lokal gespeichert · synchronisiert ✓
     {:else if savedStatus === "local"}
@@ -137,3 +144,13 @@
     {/if}
   </p>
 </form>
+
+<style>
+  .datum-kopf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.8rem;
+    margin-bottom: 1.1rem;
+  }
+</style>

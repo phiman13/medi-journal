@@ -41,32 +41,34 @@
 </script>
 
 <form onsubmit={handleSave}>
-  <fieldset>
+  <fieldset class="karte">
     <legend>Neues Ereignis</legend>
-    <label>
-      Datum
-      <input type="date" bind:value={draft.date} max={today} />
-    </label>
-    <label>
-      Typ
-      <select bind:value={draft.type}>
-        {#each EVENT_TYPES as { value, label } (value)}
-          <option {value}>{label}</option>
-        {/each}
-      </select>
-    </label>
-    <label>
-      Titel
-      <input type="text" bind:value={draft.title} placeholder="z. B. Elvanse 30 → 50 mg" required />
-    </label>
-    <label>
-      Details
-      <textarea bind:value={draft.details}></textarea>
-    </label>
+    <div class="feld-liste">
+      <label>
+        Datum
+        <input type="date" bind:value={draft.date} max={today} />
+      </label>
+      <label>
+        Typ
+        <select bind:value={draft.type}>
+          {#each EVENT_TYPES as { value, label } (value)}
+            <option {value}>{label}</option>
+          {/each}
+        </select>
+      </label>
+      <label>
+        Titel
+        <input type="text" bind:value={draft.title} placeholder="z. B. Elvanse 30 → 50 mg" required />
+      </label>
+      <label>
+        Details
+        <textarea bind:value={draft.details}></textarea>
+      </label>
+    </div>
   </fieldset>
 
-  <button type="submit" disabled={saving}>Speichern</button>
-  <p role="status">
+  <button type="submit" class="knopf" disabled={saving}>Speichern</button>
+  <p class="status-zeile" role="status">
     {#if savedStatus === "synced"}
       lokal gespeichert · synchronisiert ✓
     {:else if savedStatus === "local"}
@@ -75,15 +77,27 @@
   </p>
 </form>
 
-<section>
+<section class="karte">
   <h2>Ereignisse</h2>
   {#if events.length === 0}
     <p>Noch keine Ereignisse.</p>
   {:else}
-    <ul>
+    <ul class="ereignis-liste">
       {#each events as event (event.id)}
-        <li>{event.date} — {event.title}</li>
+        <li><span class="zahl">{event.date}</span> — {event.title}</li>
       {/each}
     </ul>
   {/if}
 </section>
+
+<style>
+  .ereignis-liste {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    font-size: 0.88rem;
+  }
+</style>

@@ -22,6 +22,14 @@
   let pushError = $state<string | null>(null);
   let fallbackBadgeDue = $state(false);
 
+  const TABS = [
+    { key: "entry", label: "Eintrag" },
+    { key: "weekly", label: "Wochen" },
+    { key: "phq9", label: "PHQ-9" },
+    { key: "events", label: "Ereignisse" },
+    { key: "dashboard", label: "Verlauf" },
+  ] as const;
+
   async function checkDueReminders(): Promise<void> {
     const today = todayInBerlin();
 
@@ -84,49 +92,42 @@
   });
 </script>
 
-<main>
-  <UpdateBanner />
-  {#if $authenticated}
-    <nav>
-      <button type="button" onclick={() => (view = "entry")} aria-current={view === "entry"}>
-        Eintrag
-      </button>
-      <button type="button" onclick={() => (view = "weekly")} aria-current={view === "weekly"}>
-        Wochen-Check{weeklyCheckDue ? " •" : ""}
-      </button>
-      <button type="button" onclick={() => (view = "phq9")} aria-current={view === "phq9"}>
-        PHQ-9{phq9Due ? " •" : ""}
-      </button>
-      <button type="button" onclick={() => (view = "events")} aria-current={view === "events"}>
-        Ereignisse
-      </button>
-      <button type="button" onclick={() => (view = "dashboard")} aria-current={view === "dashboard"}>
-        Verlauf
-      </button>
-    </nav>
+<UpdateBanner />
+{#if $authenticated}
+  <main class="seite app-inhalt">
+    <!-- Nur für Screenreader: Kartentitel starten sonst direkt bei h2, ohne
+         h1 fehlt die Ebene für die Heading-Navigation (M6-Review). Die
+         aktuelle Ansicht ist über die Tab-Bar bereits visuell erkennbar. -->
+    <h1 class="sr-only">{TABS.find((tab) => tab.key === view)?.label}</h1>
     {#if weeklyCheckDue && view !== "weekly"}
-      <p role="status">
-        Wochen-Check steht aus. <button type="button" onclick={() => (view = "weekly")}>Jetzt ausfüllen</button>
-      </p>
+      <div class="hinweis">
+        <span>Wochen-Check steht aus.</span>
+        <button type="button" class="knopf" onclick={() => (view = "weekly")}>Ausfüllen</button>
+      </div>
     {/if}
     {#if phq9Due && view !== "phq9"}
-      <p role="status">
-        PHQ-9 steht aus. <button type="button" onclick={() => (view = "phq9")}>Jetzt ausfüllen</button>
-      </p>
+      <div class="hinweis">
+        <span>PHQ-9 steht aus.</span>
+        <button type="button" class="knopf" onclick={() => (view = "phq9")}>Ausfüllen</button>
+      </div>
     {/if}
     {#if fallbackBadgeDue}
-      <p role="status">Seit mehreren Tagen kein Eintrag.</p>
+      <div class="hinweis">
+        <span>Seit mehreren Tagen kein Eintrag.</span>
+      </div>
     {/if}
     {#if pushSupported}
-      <p>
-        <button type="button" onclick={togglePush} disabled={pushBusy}>
-          {pushSubscribed ? "Erinnerungen deaktivieren" : "Erinnerungen aktivieren"}
+      <div class="hinweis">
+        <span>{pushSubscribed ? "Erinnerungen sind aktiv." : "Erinnerungen sind aus."}</span>
+        <button type="button" class="knopf" onclick={togglePush} disabled={pushBusy}>
+          {pushSubscribed ? "Deaktivieren" : "Aktivieren"}
         </button>
-        {#if pushError}
-          <span role="alert">{pushError}</span>
-        {/if}
-      </p>
+      </div>
     {/if}
+    {#if pushError}
+      <p class="fehler" role="alert">{pushError}</p>
+    {/if}
+
     {#if view === "entry"}
       <DailyEntryForm />
     {:else if view === "weekly"}
@@ -138,7 +139,74 @@
     {:else}
       <Dashboard />
     {/if}
-  {:else}
-    <Login />
-  {/if}
-</main>
+  </main>
+
+  <nav class="tabbar" aria-label="Hauptnavigation">
+    {#each TABS as tab (tab.key)}
+      <button
+        type="button"
+        class:aktiv={view === tab.key}
+        aria-current={view === tab.key}
+        onclick={() => (view = tab.key)}
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true">
+          {#if tab.key === "entry"}
+            <rect x="4" y="4" width="16" height="16" rx="3" /><path d="M4 10h16M9 4v6" />
+          {:else if tab.key === "weekly"}
+            <path d="M4 19V10l8-6 8 6v9" /><path d="M9 19v-6h6v6" />
+          {:else if tab.key === "phq9"}
+            <circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" />
+          {:else if tab.key === "events"}
+            <path
+              d="M12 21s-7-4.6-9.5-9C1 8.5 3 5 6.5 5c2 0 3.3 1.1 5.5 3.2C14.2 6.1 15.5 5 17.5 5 21 5 23 8.5 21.5 12c-2.5 4.4-9.5 9-9.5 9Z"
+            />
+          {:else}
+            <path d="M4 19h16M7 19V9m5 10V5m5 14v-7" />
+          {/if}
+        </svg>
+        <span>{tab.label}{(tab.key === "weekly" && weeklyCheckDue) || (tab.key === "phq9" && phq9Due) ? " •" : ""}</span>
+      </button>
+    {/each}
+  </nav>
+{:else}
+  <Login />
+{/if}
+
+<style>
+  .app-inhalt {
+    padding-bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .tabbar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    background: var(--papier-hoch);
+    border-top: 1px solid var(--papier-linie);
+    padding: 0.45rem 0.3rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
+    z-index: 10;
+  }
+  .tabbar button {
+    all: unset;
+    box-sizing: border-box;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: 0.62rem;
+    color: var(--tinte-matt);
+    padding: 0.3rem 0.1rem;
+    cursor: pointer;
+    border-radius: 10px;
+  }
+  .tabbar button.aktiv {
+    color: var(--ruhe);
+  }
+  .tabbar svg {
+    width: 21px;
+    height: 21px;
+  }
+</style>
