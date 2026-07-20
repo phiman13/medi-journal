@@ -1,6 +1,6 @@
 <script lang="ts">
   import { authenticated } from "./lib/auth";
-  import { pullChanges } from "./lib/sync";
+  import { syncNow } from "./lib/sync";
   import { db } from "./lib/db";
   import { todayInBerlin } from "./lib/dailyEntry";
   import { isWeeklyCheckDue, isPhq9Due, isFallbackBadgeDue } from "./lib/reminders";
@@ -78,17 +78,28 @@
     }
   }
 
+  // SPEC.md §7 AK1: nach Verbindungsabbruch bleibt ein Eintrag "pending",
+  // bis er nachgeschoben wird - das MUSS von selbst passieren, sobald die
+  // Verbindung zurück ist, nicht erst beim nächsten manuellen Speichern
+  // desselben Datensatzes (per E2E-Test gefunden, s. e2e/tests/).
   $effect(() => {
-    if ($authenticated) {
-      pullChanges()
+    if (!$authenticated) return;
+
+    function resync(): void {
+      syncNow()
         .catch(() => {
-          // offline beim Start - kein Problem, IndexedDB ist der Cache (SPEC.md §4.1)
+          // offline - kein Problem, IndexedDB ist der Cache (SPEC.md §4.1);
+          // pending Einträge bleiben bis zum nächsten "online"-Event liegen
         })
         .finally(() => {
           checkDueReminders();
           checkPushState();
         });
     }
+
+    resync();
+    window.addEventListener("online", resync);
+    return () => window.removeEventListener("online", resync);
   });
 </script>
 

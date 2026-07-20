@@ -87,9 +87,32 @@ npm run generate-vapid-keys --workspace server -- mailto:du@example.com
 registrierten Geräte aus (unabhängig von Fälligkeit) — nützlich, um den
 Zustellpfad ohne Warten auf 21:00 Uhr zu verifizieren.
 
+## Tests
+
+```bash
+npm test               # Vitest, beide Workspaces (app + server)
+npm run test:e2e        # Playwright-E2E gegen echten Server + Produktions-Build
+```
+
+E2E-Tests (`e2e/`) laufen gegen eine isolierte SQLite-Datei
+(`server/data/e2e-test.sqlite`, wird vor jedem Lauf geleert) auf Port 3100,
+unabhängig von der lokalen Dev-Datenbank. Decken die Akzeptanzkriterien aus
+SPEC.md §7 ab (AK1 Offline-Sync, AK2 LWW-Konflikt, AK5 PHQ-9-Krisenhinweis,
+AK6 Nachtragen-Hinweis, AK7 CSP) sowie einen automatisierten
+WCAG-2.1-AA-Regressionstest (axe-core) über alle Screens.
+
+## Sicherheit
+
+- Content-Security-Policy strikt (`default-src 'self'`, kein CDN, s.
+  `server/src/plugins/security.ts`), HSTS gesetzt (SPEC.md §4.3)
+- `npm audit` ohne bekannte Schwachstellen
+- Kein Suchmaschinen-Indexing (`<meta name="robots" content="noindex">`) —
+  privates Tagebuch mit echten Gesundheitsdaten
+
 ## Status
 
-M1–M4 sowie M5a (Dashboard) und M5b (Web Push) vollständig umgesetzt. Siehe
+M1–M4, M5a (Dashboard), M5b (Web Push) sowie M6 (A11y-Pass, CSP, Playwright-
+E2E-Tests) vollständig umgesetzt. Siehe
 `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
 
 M5 wurde bewusst auf die beiden aktuell relevanten Features verschlankt

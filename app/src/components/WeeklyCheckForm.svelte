@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { db } from "../lib/db";
-  import { saveWeeklyCheck } from "../lib/sync";
+  import { saveWeeklyCheck, SYNCED_EVENT } from "../lib/sync";
   import { emptyWeeklyCheck, ASRS_QUESTIONS, mondayOfWeek, type WeeklyCheck } from "../lib/weeklyCheck";
   import { addDays, todayInBerlin } from "../lib/dailyEntry";
   import { mostRecentlyCompletedWeekStart } from "../lib/reminders";
@@ -35,6 +35,13 @@
 
   onMount(() => {
     loadWeek(weekStart);
+    // s. DailyEntryForm.svelte - savedStatus ist eine Momentaufnahme ohne
+    // Live-Bindung an IndexedDB.
+    const onSynced = (): void => {
+      loadWeek(weekStart);
+    };
+    window.addEventListener(SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(SYNCED_EVENT, onSynced);
   });
 
   function goToWeek(newWeekStart: string): void {
@@ -121,7 +128,9 @@
 
   <fieldset class="karte">
     <legend>Gesamteindruck gegenüber Vorwoche</legend>
-    <select bind:value={check.week_rating}>
+    <!-- <legend> benennt nur die Fieldset-Gruppe, nicht das einzelne Control
+         darin (M6-A11y-Pass, axe "label"-Regel) - aria-label zusätzlich. -->
+    <select aria-label="Gesamteindruck gegenüber Vorwoche" bind:value={check.week_rating}>
       <option value={null}></option>
       <option value="deutlich_besser">deutlich besser</option>
       <option value="etwas_besser">etwas besser</option>

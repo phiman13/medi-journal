@@ -3,6 +3,7 @@ import Fastify, { type FastifyInstance } from "fastify";
 import fastifyStatic from "@fastify/static";
 import type Database from "better-sqlite3";
 import { registerSession } from "./plugins/session";
+import { registerSecurity } from "./plugins/security";
 import { healthzRoutes } from "./routes/healthz";
 import { authRoutes } from "./routes/auth";
 import { syncRoutes } from "./routes/sync";
@@ -25,6 +26,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   const app = Fastify({ logger: true });
   app.decorate("db", options.db);
 
+  await registerSecurity(app);
   await registerSession(app, options.sessionSecret);
 
   app.addHook("onRequest", async (request, reply) => {

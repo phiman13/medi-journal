@@ -20,7 +20,7 @@
   }
 </script>
 
-<div class="login-bühne">
+<main class="login-bühne">
   <form class="karte login-karte" onsubmit={handleSubmit}>
     <h1 class="login-marke">medi-journal</h1>
     <p class="eyebrow">Privates Tagebuch</p>
@@ -33,7 +33,7 @@
       <p class="fehler" role="alert">{error}</p>
     {/if}
   </form>
-</div>
+</main>
 
 <style>
   .login-bühne {

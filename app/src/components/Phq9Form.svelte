@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { db } from "../lib/db";
-  import { savePhq9Check } from "../lib/sync";
+  import { savePhq9Check, SYNCED_EVENT } from "../lib/sync";
   import { emptyPhq9Check, PHQ9_QUESTIONS, PHQ9_ITEM_9_INDEX, phq9Severity, type Phq9Check } from "../lib/phq9";
   import { todayInBerlin } from "../lib/dailyEntry";
   import Antwortreihe from "./Antwortreihe.svelte";
@@ -39,6 +39,13 @@
 
   onMount(() => {
     loadCheck(date);
+    // s. DailyEntryForm.svelte - savedStatus ist eine Momentaufnahme ohne
+    // Live-Bindung an IndexedDB.
+    const onSynced = (): void => {
+      loadCheck(date);
+    };
+    window.addEventListener(SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(SYNCED_EVENT, onSynced);
   });
 
   function goToDate(newDate: string): void {
@@ -67,7 +74,7 @@
 
 <form onsubmit={handleSave}>
   <header class="datum-kopf">
-    <input type="date" bind:value={date} max={today} onchange={() => goToDate(date)} />
+    <input type="date" aria-label="Datum" bind:value={date} max={today} onchange={() => goToDate(date)} />
   </header>
 
   <div class="karte">

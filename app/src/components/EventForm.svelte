@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { db } from "../lib/db";
-  import { saveEvent } from "../lib/sync";
+  import { saveEvent, SYNCED_EVENT } from "../lib/sync";
   import { emptyEvent, EVENT_TYPES, type JournalEvent } from "../lib/event";
   import { todayInBerlin } from "../lib/dailyEntry";
 
@@ -10,6 +10,10 @@
   let draft = $state<JournalEvent>(emptyEvent(today));
   let saving = $state(false);
   let savedStatus = $state<"idle" | "local" | "synced">("idle");
+  // id des zuletzt gespeicherten Ereignisses - draft wird nach dem Speichern
+  // sofort zurückgesetzt, savedStatus muss trotzdem den echten sync_status
+  // DIESES Datensatzes zeigen (nicht des neuen leeren Entwurfs).
+  let savedEventId = $state<string | null>(null);
   let events = $state<JournalEvent[]>([]);
 
   async function loadEvents(): Promise<void> {
@@ -17,8 +21,23 @@
     events = all.filter((event) => !event.deleted_at).sort((a, b) => (a.date < b.date ? 1 : -1));
   }
 
+  async function refreshSavedStatus(): Promise<void> {
+    if (!savedEventId) return;
+    const stored = await db.events.get(savedEventId);
+    if (stored) savedStatus = stored.sync_status === "synced" ? "synced" : "local";
+  }
+
   onMount(() => {
     loadEvents();
+    // saveEvent() wirft bei einem fehlgeschlagenen Push NICHT (bleibt lokal
+    // "pending", s. lib/sync.ts) - savedStatus darf sich daher nicht allein
+    // aus einem erfolgreichen await ergeben, sondern muss den echten
+    // sync_status lesen (per E2E-Test gefunden, s. e2e/tests/).
+    const onSynced = (): void => {
+      refreshSavedStatus();
+    };
+    window.addEventListener(SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(SYNCED_EVENT, onSynced);
   });
 
   async function handleSave(event: SubmitEvent): Promise<void> {
@@ -26,9 +45,10 @@
     if (!draft.title.trim()) return;
     saving = true;
     savedStatus = "local";
+    savedEventId = draft.id;
     try {
       await saveEvent($state.snapshot(draft));
-      savedStatus = "synced";
+      await refreshSavedStatus();
       draft = emptyEvent(today);
       await loadEvents();
     } catch (error) {

@@ -7,6 +7,21 @@ import type { JournalEvent } from "./event";
 
 const LAST_SYNC_CURSOR_KEY = "lastSyncCursor";
 
+// Formular-Komponenten zeigen ihren sync_status als lokale Momentaufnahme
+// (kein Live-Binding an IndexedDB) - ohne dieses Event bemerken sie nicht,
+// wenn ein zuvor "pending" gebliebener Datensatz im Hintergrund (z. B. nach
+// Wiederverbindung, s. App.svelte "online"-Hook) doch noch "synced" wird
+// (per E2E-Test gefunden, s. e2e/tests/ak1-offline-sync.spec.ts).
+export const SYNCED_EVENT = "medi-journal:synced";
+
+function notifySynced(): void {
+  // `window` fehlt in der Node-Testumgebung (vitest.config.ts läuft ohne
+  // jsdom) - dort ist niemand da, der das Event ohnehin empfangen könnte.
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(SYNCED_EVENT));
+  }
+}
+
 // IndexedDB (structured clone) kann keine Proxy-Objekte speichern - ein
 // Svelte-5-$state-Wert schlägt sonst mit "DataCloneError" fehl, ohne dass der
 // Aufrufer es merkt (der Eintrag bleibt dann unsichtbar verworfen). Aufrufer
@@ -61,6 +76,7 @@ async function pushPendingForTable(table: SyncableTable, tableName: string): Pro
     try {
       const canonical = await pushRecord(tableName, record);
       await table.put({ ...canonical, sync_status: "synced" } as Syncable);
+      notifySynced();
     } catch {
       // nächster Versuch später (z. B. beim nächsten pullChanges()-Aufruf)
     }
@@ -86,6 +102,7 @@ async function applyPulledRecords(
       continue;
     }
     await table.put({ ...record, sync_status: "synced" } as Syncable);
+    notifySynced();
   }
 }
 

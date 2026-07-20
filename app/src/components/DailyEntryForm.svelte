@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { db } from "../lib/db";
-  import { saveEntry } from "../lib/sync";
+  import { saveEntry, SYNCED_EVENT } from "../lib/sync";
   import {
     emptyEntry,
     todayInBerlin,
@@ -49,6 +49,14 @@
 
   onMount(() => {
     loadEntry(date);
+    // Ein zuvor "pending" gebliebener Eintrag kann im Hintergrund synced
+    // werden (z. B. App.svelte "online"-Hook) - savedStatus ist sonst eine
+    // einmalige Momentaufnahme ohne Live-Bindung an IndexedDB.
+    const onSynced = (): void => {
+      loadEntry(date);
+    };
+    window.addEventListener(SYNCED_EVENT, onSynced);
+    return () => window.removeEventListener(SYNCED_EVENT, onSynced);
   });
 
   function goToDate(newDate: string): void {
@@ -90,7 +98,7 @@
 <form onsubmit={handleSave}>
   <header class="datum-kopf">
     <button type="button" class="knopf leise" onclick={() => shiftDay(-1)} aria-label="Vorheriger Tag">←</button>
-    <input type="date" bind:value={date} max={today} onchange={() => goToDate(date)} />
+    <input type="date" aria-label="Datum" bind:value={date} max={today} onchange={() => goToDate(date)} />
     <button
       type="button"
       class="knopf leise"
