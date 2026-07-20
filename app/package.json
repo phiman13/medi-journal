@@ -26,6 +26,7 @@
     "vitest": "^3.0.4"
   },
   "dependencies": {
-    "dexie": "^4.4.4"
+    "dexie": "^4.4.4",
+    "workbox-precaching": "^7.4.1"
   }
 }

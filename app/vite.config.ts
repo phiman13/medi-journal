@@ -8,11 +8,15 @@ export default defineConfig({
   plugins: [
     svelte(),
     VitePWA({
-      // generateSW statt injectManifest: Workbox-Runtime wird lokal ins
-      // Bundle geschrieben, kein CDN-Import (SPEC.md §6: keine Requests an
-      // fremde Hosts) - nach jedem Build via `grep importScripts dist/sw.js`
-      // verifiziert.
-      strategies: "generateSW",
+      // injectManifest statt generateSW (M5b): eigene push/notificationclick-
+      // Handler in app/src/sw.ts brauchen einen eigenen Service-Worker-
+      // Quelltext, den Workbox nicht mehr generieren kann. Workbox-Pakete
+      // bleiben trotzdem npm-Importe, die Vite/Rollup lokal ins Bundle
+      // schreibt - kein CDN-Import (SPEC.md §6) - nach jedem Build weiter
+      // via `grep importScripts dist/sw.js` verifiziert.
+      strategies: "injectManifest",
+      srcDir: "src",
+      filename: "sw.ts",
       registerType: "prompt",
       includeAssets: ["favicon.svg", "apple-touch-icon.png"],
       devOptions: {
@@ -32,7 +36,7 @@ export default defineConfig({
           { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
         ],
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,svg,png}"],
       },
     }),

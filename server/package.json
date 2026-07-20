@@ -7,7 +7,8 @@
     "build": "tsc -p tsconfig.json && cp src/db/schema.sql dist/db/schema.sql",
     "start": "node dist/index.js",
     "test": "vitest run",
-    "hash-password": "tsx scripts/hash-password.ts"
+    "hash-password": "tsx scripts/hash-password.ts",
+    "generate-vapid-keys": "tsx scripts/generate-vapid-keys.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -15,11 +16,13 @@
     "@fastify/static": "^8.0.4",
     "argon2": "^0.41.1",
     "better-sqlite3": "^12.11.1",
-    "fastify": "^5.2.1"
+    "fastify": "^5.2.1",
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@types/better-sqlite3": "^7.6.12",
     "@types/node": "^22.10.7",
+    "@types/web-push": "^3.6.4",
     "tsx": "^4.19.2",
     "typescript": "^5.7.3",
     "vitest": "^3.0.4"

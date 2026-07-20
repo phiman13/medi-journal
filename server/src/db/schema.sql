@@ -110,3 +110,26 @@ CREATE TABLE IF NOT EXISTS settings (
   data                  TEXT NOT NULL,
   updated_at            TEXT NOT NULL
 );
+
+-- Web-Push-Subscriptions (SPEC.md §4.1/§4.2, M5b). Reine Server-Infrastruktur
+-- pro Gerät, kein user-editierbarer fachlicher Record - läuft daher bewusst
+-- NICHT über das Sync-Protokoll (kein deleted_at/server_received_at/sync_seq).
+-- `endpoint` ist pro Browser-Installation eindeutig (vom Push-Service
+-- vergeben), UNIQUE erlaubt mehrere Geräte desselben Nutzers nebeneinander.
+CREATE TABLE IF NOT EXISTS push_subscriptions (
+  id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  endpoint              TEXT NOT NULL UNIQUE,
+  p256dh                TEXT NOT NULL,
+  auth                  TEXT NOT NULL,
+  created_at            TEXT NOT NULL
+);
+
+-- Idempotenz-Guard für den Reminder-Scheduler (server/src/pushScheduler.ts):
+-- verhindert Doppel-Sends bei mehreren Ticks im selben Zeitfenster oder nach
+-- einem Server-Neustart am selben Tag. INSERT OR IGNORE vor dem Senden -
+-- nur wenn die Zeile neu eingefügt wurde, wird tatsächlich gesendet.
+CREATE TABLE IF NOT EXISTS push_reminders_sent (
+  type                  TEXT NOT NULL,
+  date                  TEXT NOT NULL,
+  PRIMARY KEY (type, date)
+);

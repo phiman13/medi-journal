@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { mostRecentlyCompletedWeekStart, isWeeklyCheckDue, isPhq9Due } from "../src/lib/reminders";
+import {
+  mostRecentlyCompletedWeekStart,
+  isWeeklyCheckDue,
+  isPhq9Due,
+  isFallbackBadgeDue,
+} from "../src/lib/reminders";
 
 describe("mostRecentlyCompletedWeekStart", () => {
   it("liefert die laufende Woche, wenn heute Sonntag ist", () => {
@@ -36,5 +41,19 @@ describe("isPhq9Due", () => {
 
   it("ist fällig ab genau 14 Tagen", () => {
     expect(isPhq9Due("2026-07-24", "2026-07-10")).toBe(true);
+  });
+});
+
+describe("isFallbackBadgeDue", () => {
+  it("ist fällig, wenn noch nie ein Eintrag erfasst wurde", () => {
+    expect(isFallbackBadgeDue("2026-07-19", undefined)).toBe(true);
+  });
+
+  it("ist nicht fällig innerhalb von 3 Tagen seit dem letzten Eintrag", () => {
+    expect(isFallbackBadgeDue("2026-07-19", "2026-07-17")).toBe(false);
+  });
+
+  it("ist fällig ab genau 3 Tagen seit dem letzten Eintrag", () => {
+    expect(isFallbackBadgeDue("2026-07-19", "2026-07-16")).toBe(true);
   });
 });

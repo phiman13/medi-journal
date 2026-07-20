@@ -9,6 +9,11 @@ async function testApp(password: string) {
     masterPasswordHash: await hashPassword(password),
     sessionSecret: "test-secret-test-secret-test-secret",
     staticDir: "/nonexistent-static-dir-for-tests",
+    vapid: {
+      publicKey: "test-public-key",
+      privateKey: "test-private-key",
+      subject: "mailto:test@example.com",
+    },
   });
 }
 

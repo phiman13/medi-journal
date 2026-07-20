@@ -15,6 +15,11 @@ describe("GET /api/v1/sync mit mehreren Tabellen", () => {
       masterPasswordHash: await hashPassword("test-only"),
       sessionSecret: "test-secret-test-secret-test-secret",
       staticDir: "/nonexistent-static-dir-for-tests",
+      vapid: {
+        publicKey: "test-public-key",
+        privateKey: "test-private-key",
+        subject: "mailto:test@example.com",
+      },
     });
 
     const login = await app.inject({

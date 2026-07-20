@@ -25,4 +25,14 @@ export const config = {
   get sessionSecret(): string {
     return required("SESSION_SECRET");
   },
+  // Web-Push (SPEC.md §4.1, M5b). Erzeugen mit: npm run generate-vapid-keys -- <mailto:...>
+  get vapidPublicKey(): string {
+    return required("VAPID_PUBLIC_KEY");
+  },
+  get vapidPrivateKey(): string {
+    return required("VAPID_PRIVATE_KEY");
+  },
+  get vapidSubject(): string {
+    return required("VAPID_SUBJECT");
+  },
 };

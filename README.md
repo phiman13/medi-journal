@@ -71,14 +71,36 @@ da rclone-Zugangsdaten nicht ins App-Image gehören.
   (`version: 2`, deutsches camelCase, Feld-Mapping in `server/src/import.ts`) als
   auch eigene `export.json`-Dateien (`version: 3`, direkter Pass-through)
 
+## Web Push
+
+Tägliche Erinnerung (Default 21:00 Europe/Berlin), Sonntags-Wochen-Check,
+PHQ-9 alle 14 Tage — Payload enthält bewusst keine sensiblen Inhalte (nur
+"Kurz eintragen?", SPEC.md §5.5). Fallback ohne erteilte Berechtigung: Badge
+"Seit mehreren Tagen kein Eintrag" beim Öffnen.
+
+```bash
+npm run generate-vapid-keys --workspace server -- mailto:du@example.com
+# Ausgabe als VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY/VAPID_SUBJECT in .env eintragen
+```
+
+`POST /api/v1/push/test-send` löst sofort einen Testversand an alle
+registrierten Geräte aus (unabhängig von Fälligkeit) — nützlich, um den
+Zustellpfad ohne Warten auf 21:00 Uhr zu verifizieren.
+
 ## Status
 
-M1–M4 sowie M5a (Dashboard) vollständig umgesetzt. Siehe
+M1–M4 sowie M5a (Dashboard) und M5b (Web Push) vollständig umgesetzt. Siehe
 `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
 
 M5 wurde bewusst auf die beiden aktuell relevanten Features verschlankt
 (Dashboard, Web Push) — Arztbericht (F4) und Passkey-Login sind vorerst
 zurückgestellt.
+
+Web Push (VAPID, self-hosted) ist end-to-end in Desktop-Chrome verifiziert
+(echter Subscribe- und Zustellpfad über Googles FCM-Push-Service). Der laut
+SPEC.md §11 vorgeschriebene manuelle Test auf einem echten iPhone (iOS
+verlangt Standalone-Installation für Web Push, PWA-Verhalten lässt sich nicht
+vollständig emulieren) steht noch aus.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter
 `fixtures/bridge-export.json` (nicht im Git, enthält echte Gesundheitsdaten,

@@ -48,6 +48,44 @@ export async function pushRecord<T extends Record<string, unknown>>(
   return body.tables[table][0];
 }
 
+export async function fetchVapidPublicKey(): Promise<string> {
+  const response = await apiFetch("/api/v1/push/vapid-public-key");
+  if (!response.ok) {
+    throw new Error(`VAPID-Key-Abruf fehlgeschlagen: ${response.status}`);
+  }
+  const body = await response.json();
+  return body.publicKey;
+}
+
+export async function subscribePush(subscription: PushSubscriptionJSON): Promise<void> {
+  const response = await apiFetch("/api/v1/push/subscribe", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(subscription),
+  });
+  if (!response.ok) {
+    throw new Error(`Push-Subscribe fehlgeschlagen: ${response.status}`);
+  }
+}
+
+export async function unsubscribePush(endpoint: string): Promise<void> {
+  const response = await apiFetch("/api/v1/push/subscribe", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ endpoint }),
+  });
+  if (!response.ok) {
+    throw new Error(`Push-Unsubscribe fehlgeschlagen: ${response.status}`);
+  }
+}
+
+export async function testSendPush(): Promise<void> {
+  const response = await apiFetch("/api/v1/push/test-send", { method: "POST" });
+  if (!response.ok) {
+    throw new Error(`Push-Testversand fehlgeschlagen: ${response.status}`);
+  }
+}
+
 export interface PullResult {
   since: string;
   daily_entries: DailyEntry[];

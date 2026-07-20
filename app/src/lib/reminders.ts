@@ -30,3 +30,16 @@ export function isPhq9Due(today: string, lastCompletedDate: string | undefined):
     (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${lastCompletedDate}T00:00:00Z`)) / 86_400_000;
   return daysSince >= PHQ9_INTERVAL_DAYS;
 }
+
+const FALLBACK_BADGE_DAYS = 3;
+
+// SPEC.md §4.1: "Fallback, falls Push nicht bewilligt: Badge/Hinweis beim
+// Öffnen ('3 Tage ohne Eintrag')." Nur relevant, wenn keine aktive
+// Push-Subscription existiert (sonst doppelte Nervigkeit) - das prüft der
+// Aufrufer (App.svelte), nicht diese reine Funktion.
+export function isFallbackBadgeDue(today: string, lastEntryDate: string | undefined): boolean {
+  if (!lastEntryDate) return true;
+  const daysSince =
+    (Date.parse(`${today}T00:00:00Z`) - Date.parse(`${lastEntryDate}T00:00:00Z`)) / 86_400_000;
+  return daysSince >= FALLBACK_BADGE_DAYS;
+}

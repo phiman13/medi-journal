@@ -8,12 +8,15 @@ import { authRoutes } from "./routes/auth";
 import { syncRoutes } from "./routes/sync";
 import { exportRoutes } from "./routes/export";
 import { importRoutes } from "./routes/import";
+import { pushRoutes } from "./routes/push";
+import type { VapidConfig } from "./push/sendPush";
 
 export interface AppOptions {
   db: Database.Database;
   masterPasswordHash: string;
   sessionSecret: string;
   staticDir: string;
+  vapid: VapidConfig;
 }
 
 const PUBLIC_PATHS = ["/healthz", "/api/v1/auth/login", "/api/v1/auth/logout"];
@@ -38,6 +41,7 @@ export async function buildApp(options: AppOptions): Promise<FastifyInstance> {
   await app.register(syncRoutes);
   await app.register(exportRoutes);
   await app.register(importRoutes);
+  await app.register((instance) => pushRoutes(instance, options.vapid));
 
   // app/dist existiert erst nach "npm run build --workspace app". In der
   // Entwicklung läuft das Frontend über den separaten Vite-Dev-Server (Proxy
