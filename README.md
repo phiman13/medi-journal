@@ -73,8 +73,12 @@ da rclone-Zugangsdaten nicht ins App-Image gehören.
 
 ## Status
 
-M1–M4 vollständig umgesetzt. Siehe
+M1–M4 sowie M5a (Dashboard) vollständig umgesetzt. Siehe
 `docs/superpowers/specs/2026-07-17-m1-scaffolding-design.md`.
+
+M5 wurde bewusst auf die beiden aktuell relevanten Features verschlankt
+(Dashboard, Web Push) — Arztbericht (F4) und Passkey-Login sind vorerst
+zurückgestellt.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter
 `fixtures/bridge-export.json` (nicht im Git, enthält echte Gesundheitsdaten,
