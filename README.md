@@ -96,11 +96,10 @@ M5 wurde bewusst auf die beiden aktuell relevanten Features verschlankt
 (Dashboard, Web Push) — Arztbericht (F4) und Passkey-Login sind vorerst
 zurückgestellt.
 
-Web Push (VAPID, self-hosted) ist end-to-end in Desktop-Chrome verifiziert
-(echter Subscribe- und Zustellpfad über Googles FCM-Push-Service). Der laut
-SPEC.md §11 vorgeschriebene manuelle Test auf einem echten iPhone (iOS
-verlangt Standalone-Installation für Web Push, PWA-Verhalten lässt sich nicht
-vollständig emulieren) steht noch aus.
+Web Push (VAPID, self-hosted) ist end-to-end verifiziert: in Desktop-Chrome
+(echter Subscribe- und Zustellpfad über Googles FCM-Push-Service) sowie am
+2026-07-20 zusätzlich auf einem echten iPhone als installierte Standalone-PWA
+(SPEC.md §11) — Testversand kam sichtbar auf dem Sperrbildschirm an.
 
 Eine echte Export-Datei der alten HTML-Brückenlösung liegt lokal unter
 `fixtures/bridge-export.json` (nicht im Git, enthält echte Gesundheitsdaten,
