@@ -4,3 +4,12 @@
 docs
 legacy-bridge
 *.md
+# Enthält u. U. echte Gesundheitsdaten (s. .gitignore) - nie in den
+# Docker-Build-Context, unabhängig von der Multi-Stage-Discard-Logik.
+fixtures
+e2e
+playwright.config.ts
+playwright-report
+test-results
+server/data
+server/backups*

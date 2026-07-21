@@ -33,9 +33,19 @@ npm run dev:app       # Vite-Dev-Server, proxied /api an den Server
 ## Deployment
 
 ```bash
-cp .env.example .env   # DOMAIN, MASTER_PASSWORD_HASH (npm run hash-password --workspace server -- <passwort>), SESSION_SECRET setzen
+cp .env.example .env
+# .env befüllen:
+#   DOMAIN, SESSION_SECRET (openssl rand -hex 32)
+#   MASTER_PASSWORD_HASH   -> npm run hash-password --workspace server -- <passwort>
+#   VAPID_PUBLIC_KEY/VAPID_PRIVATE_KEY/VAPID_SUBJECT
+#                          -> npm run generate-vapid-keys --workspace server -- mailto:du@example.com
 docker compose up -d --build
 ```
+
+Beim allerersten Deployment auf einem neuen Server ist die Datenbank leer.
+Um die eigene Historie aus der alten Brücken-Lösung zu übernehmen:
+`POST /api/v1/import` mit dem Export der alten HTML-Version (Format §5.6,
+`version: 2`) - s. Abschnitt "Import/Export" unten.
 
 ## Backup & Restore
 
